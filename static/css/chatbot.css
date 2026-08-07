@@ -1,222 +1,3095 @@
-/* ===========================================
-   CyberShield AI Chatbot
-=========================================== */
+/**
+ * =============================================================================
+ * CYBERSHIELD AI
+ * ADVANCED GAMING-SOC ASSISTANT VISUAL SYSTEM
+ *
+ * Destination:
+ * static/css/chatbot.css
+ *
+ * Target template:
+ * templates/chatbot.html
+ *
+ * Safety and isolation:
+ * - Every visual rule is scoped to #chatbot-container, #chat-window, or csai-*.
+ * - Existing IDs used by chatbot.js are unchanged.
+ * - No Flask routes, fetch requests, voice recognition, session storage,
+ *   message sending, clear-chat behavior, page layouts, sidebar, dashboard,
+ *   upload workflow, analytics, history, or database logic is modified.
+ * =============================================================================
+ */
 
-#chatbot-container{
-    position:fixed;
-    bottom:25px;
-    right:25px;
-    z-index:9999;
+
+/* =============================================================================
+   01. SHARED CHATBOT DESIGN TOKENS
+   ============================================================================= */
+
+#chatbot-container,
+#chat-window {
+    --csai-bg-0: #02080d;
+    --csai-bg-1: #04131c;
+    --csai-bg-2: #071d29;
+    --csai-bg-3: #0b2937;
+    --csai-bg-4: #103747;
+
+    --csai-white: #f5ffff;
+    --csai-text: #d6edf1;
+    --csai-text-soft: #9abac4;
+    --csai-text-muted: #698c99;
+    --csai-text-faint: #496875;
+
+    --csai-cyan: #5ee7eb;
+    --csai-cyan-bright: #b7ffff;
+    --csai-cyan-deep: #1da6b2;
+
+    --csai-teal: #62e6bc;
+    --csai-teal-bright: #b8ffe5;
+    --csai-teal-deep: #1d9379;
+
+    --csai-blue: #67a8ff;
+    --csai-violet: #ad91ff;
+    --csai-magenta: #ed7bff;
+
+    --csai-green: #6df2bd;
+    --csai-amber: #ffd273;
+    --csai-orange: #ff9f70;
+    --csai-red: #ff718d;
+
+    --csai-border-faint: rgba(142, 228, 237, 0.07);
+    --csai-border-soft: rgba(105, 224, 232, 0.14);
+    --csai-border: rgba(94, 231, 235, 0.24);
+    --csai-border-medium: rgba(104, 240, 241, 0.37);
+    --csai-border-strong: rgba(174, 255, 255, 0.62);
+
+    --csai-shadow-small:
+        0 12px 32px rgba(0, 0, 0, 0.24);
+
+    --csai-shadow-medium:
+        0 24px 72px rgba(0, 0, 0, 0.38);
+
+    --csai-shadow-large:
+        0 36px 110px rgba(0, 0, 0, 0.52);
+
+    --csai-glow-cyan:
+        0 0 18px rgba(94, 231, 235, 0.18),
+        0 0 52px rgba(94, 231, 235, 0.08);
+
+    --csai-glow-teal:
+        0 0 18px rgba(98, 230, 188, 0.18),
+        0 0 52px rgba(98, 230, 188, 0.08);
+
+    --csai-radius-small: 11px;
+    --csai-radius-medium: 17px;
+    --csai-radius-large: 25px;
+    --csai-radius-xlarge: 32px;
+
+    --csai-font:
+        Inter,
+        Manrope,
+        "SF Pro Display",
+        "Segoe UI",
+        system-ui,
+        -apple-system,
+        sans-serif;
+
+    --csai-mono:
+        "JetBrains Mono",
+        "SFMono-Regular",
+        Consolas,
+        "Liberation Mono",
+        monospace;
+
+    font-family: var(--csai-font);
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
-#chat-toggle{
-    width:65px;
-    height:65px;
-    border:none;
-    border-radius:50%;
-    cursor:pointer;
-    font-size:30px;
-    background:#2563eb;
-    color:white;
-    box-shadow:0 0 20px rgba(37,99,235,.5);
-    transition:.3s;
+#chatbot-container,
+#chatbot-container *,
+#chatbot-container *::before,
+#chatbot-container *::after,
+#chat-window,
+#chat-window *,
+#chat-window *::before,
+#chat-window *::after {
+    box-sizing: border-box;
 }
 
-#chat-toggle:hover{
-    transform:scale(1.08);
+
+/* =============================================================================
+   02. FLOATING LAUNCHER POSITIONING
+   ============================================================================= */
+
+#chatbot-container {
+    position: fixed;
+    right: clamp(16px, 2vw, 28px);
+    bottom: clamp(16px, 2vw, 28px);
+    z-index: 9998;
+    width: 86px;
+    height: 86px;
+    isolation: isolate;
+    pointer-events: none;
 }
 
-#chat-window{
-    display:none;
-    flex-direction:column;
-    position:fixed;
-    right:25px;
-    bottom:100px;
-    width:390px;
-    height:620px;
-    background:#111827;
-    border-radius:18px;
-    overflow:hidden;
-    box-shadow:0 15px 45px rgba(0,0,0,.5);
-    z-index:9999;
+.csai-launcher-shell {
+    display: grid;
+    place-items: center;
 }
 
-/* Header */
 
-.chat-header{
-    background:#1e40af;
-    color:white;
-    padding:15px;
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
+/* =============================================================================
+   03. GAMING-ROBOT LAUNCHER AURA
+   ============================================================================= */
+
+.csai-launcher-aura {
+    position: absolute;
+    inset: -22px;
+    z-index: -1;
+    border-radius: 50%;
+    pointer-events: none;
 }
 
-.chat-title{
-    font-size:18px;
-    font-weight:bold;
+.csai-launcher-aura__ring {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    opacity: 0;
 }
 
-.chat-header button{
-    border:none;
-    background:transparent;
-    color:white;
-    font-size:18px;
-    cursor:pointer;
-    margin-left:10px;
+.csai-launcher-aura__ring--one {
+    inset: 11px;
+    border: 1px solid rgba(94, 231, 235, 0.32);
+    box-shadow:
+        inset 0 0 18px rgba(94, 231, 235, 0.08),
+        0 0 22px rgba(94, 231, 235, 0.12);
+    opacity: 0.72;
+    animation:
+        csaiLauncherOrbit
+        10s
+        linear
+        infinite;
 }
 
-/* Messages */
-
-#chat-box{
-    flex:1;
-    overflow-y:auto;
-    padding:15px;
-    background:#0f172a;
+.csai-launcher-aura__ring--one::before,
+.csai-launcher-aura__ring--one::after {
+    position: absolute;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--csai-cyan-bright);
+    box-shadow:
+        0 0 8px var(--csai-cyan),
+        0 0 18px rgba(94, 231, 235, 0.72);
+    content: "";
 }
 
-/* Scrollbar */
-
-#chat-box::-webkit-scrollbar{
-    width:8px;
+.csai-launcher-aura__ring--one::before {
+    top: -4px;
+    left: calc(50% - 4px);
 }
 
-#chat-box::-webkit-scrollbar-thumb{
-    background:#3b82f6;
-    border-radius:20px;
+.csai-launcher-aura__ring--one::after {
+    right: -4px;
+    bottom: calc(50% - 4px);
 }
 
-/* User */
-
-.user-message{
-    background:#2563eb;
-    color:white;
-    padding:12px;
-    border-radius:15px 15px 0 15px;
-    margin:10px 0;
-    width:fit-content;
-    max-width:80%;
-    margin-left:auto;
-    animation:fade .25s;
+.csai-launcher-aura__ring--two {
+    inset: 2px;
+    border:
+        1px dashed
+        rgba(98, 230, 188, 0.17);
+    opacity: 0.48;
+    animation:
+        csaiLauncherOrbitReverse
+        16s
+        linear
+        infinite;
 }
 
-/* Bot */
-
-.bot-message{
-    background:#1f2937;
-    color:white;
-    padding:12px;
-    border-radius:15px 15px 15px 0;
-    margin:10px 0;
-    width:fit-content;
-    max-width:80%;
-    animation:fade .25s;
+.csai-launcher-aura__ring--three {
+    inset: -3px;
+    border: 1px solid rgba(103, 168, 255, 0.08);
+    opacity: 0.52;
+    box-shadow:
+        0 0 0 8px rgba(94, 231, 235, 0.016),
+        0 0 0 16px rgba(98, 230, 188, 0.011);
+    animation:
+        csaiLauncherBreath
+        3.4s
+        ease-in-out
+        infinite;
 }
 
-/* Typing */
-
-#typing{
-    display:none;
-    padding:10px 18px;
-    font-size:13px;
-    color:#9ca3af;
-    background:#111827;
+.csai-launcher-aura__scan {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 112px;
+    height: 1px;
+    overflow: visible;
+    background:
+        linear-gradient(
+            90deg,
+            transparent,
+            rgba(94, 231, 235, 0.68),
+            transparent
+        );
+    opacity: 0.32;
+    transform-origin: 0 50%;
+    animation:
+        csaiLauncherRadar
+        5.8s
+        linear
+        infinite;
 }
 
-/* Suggestions */
-
-.suggestions{
-    display:flex;
-    flex-wrap:wrap;
-    gap:8px;
-    padding:12px;
-    background:#111827;
+.csai-launcher-aura__scan::after {
+    position: absolute;
+    top: -2px;
+    right: 0;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--csai-cyan-bright);
+    box-shadow:
+        0 0 12px var(--csai-cyan);
+    content: "";
 }
 
-.suggestions button{
-    background:#2563eb;
-    color:white;
-    border:none;
-    border-radius:20px;
-    padding:8px 14px;
-    cursor:pointer;
-    font-size:12px;
-    transition:.2s;
+@keyframes csaiLauncherOrbit {
+    to {
+        transform: rotate(360deg);
+    }
 }
 
-.suggestions button:hover{
-    background:#1d4ed8;
+@keyframes csaiLauncherOrbitReverse {
+    to {
+        transform: rotate(-360deg);
+    }
 }
 
-/* Input */
-
-.chat-input{
-    display:flex;
-    padding:12px;
-    background:#111827;
-    gap:10px;
+@keyframes csaiLauncherRadar {
+    to {
+        transform: rotate(360deg);
+    }
 }
 
-.chat-input input{
-    flex:1;
-    border:none;
-    outline:none;
-    border-radius:25px;
-    padding:12px 15px;
-    background:#1f2937;
-    color:white;
-}
-
-.chat-input input::placeholder{
-    color:#9ca3af;
-}
-
-.chat-input button{
-    width:50px;
-    border:none;
-    border-radius:50%;
-    cursor:pointer;
-    background:#2563eb;
-    color:white;
-    font-size:20px;
-    transition:.25s;
-}
-
-.chat-input button:hover{
-    background:#1d4ed8;
-    transform:scale(1.05);
-}
-
-/* Animation */
-
-@keyframes fade{
-
-    from{
-
-        opacity:0;
-        transform:translateY(10px);
-
+@keyframes csaiLauncherBreath {
+    0%,
+    100% {
+        opacity: 0.32;
+        transform: scale(0.96);
     }
 
-    to{
-
-        opacity:1;
-        transform:translateY(0);
-
+    50% {
+        opacity: 0.76;
+        transform: scale(1.05);
     }
-
 }
 
-/* Mobile */
 
-@media(max-width:600px){
+/* =============================================================================
+   04. GAMING-ROBOT LAUNCHER BUTTON
+   ============================================================================= */
 
-    #chat-window{
+#chat-toggle {
+    position: relative;
+    display: grid;
+    width: 78px;
+    height: 78px;
+    padding: 0;
+    place-items: center;
+    overflow: visible;
+    border: 1px solid rgba(144, 251, 252, 0.44);
+    border-radius: 24px;
+    color: var(--csai-cyan-bright);
+    background:
+        linear-gradient(
+            145deg,
+            rgba(18, 66, 79, 0.98),
+            rgba(3, 18, 27, 0.995) 72%
+        );
+    box-shadow:
+        0 22px 50px rgba(0, 0, 0, 0.45),
+        0 0 28px rgba(94, 231, 235, 0.16),
+        inset 0 1px rgba(255, 255, 255, 0.09),
+        inset 0 -18px 30px rgba(0, 0, 0, 0.22);
+    cursor: pointer;
+    pointer-events: auto;
+    transform:
+        translateZ(0)
+        rotate(0.001deg);
+    transition:
+        width 420ms cubic-bezier(0.16, 1, 0.3, 1),
+        border-radius 420ms cubic-bezier(0.16, 1, 0.3, 1),
+        border-color 220ms ease,
+        background 220ms ease,
+        box-shadow 220ms ease,
+        transform 220ms ease;
+    appearance: none;
+    -webkit-tap-highlight-color: transparent;
+}
 
-        width:95%;
-        right:2.5%;
-        height:90%;
+#chat-toggle::before {
+    position: absolute;
+    inset: -2px;
+    z-index: -3;
+    border-radius: inherit;
+    background:
+        conic-gradient(
+            from 160deg,
+            transparent 0 16%,
+            rgba(94, 231, 235, 0.78) 22%,
+            transparent 29% 50%,
+            rgba(98, 230, 188, 0.55) 56%,
+            transparent 63% 82%,
+            rgba(173, 145, 255, 0.38) 89%,
+            transparent 96%
+        );
+    content: "";
+    filter: blur(0.4px);
+    opacity: 0.72;
+    animation:
+        csaiLauncherBorderSpin
+        9s
+        linear
+        infinite;
+}
 
+#chat-toggle::after {
+    position: absolute;
+    inset: 5px;
+    z-index: -1;
+    border: 1px solid rgba(181, 255, 255, 0.10);
+    border-radius: 19px;
+    background:
+        linear-gradient(
+            145deg,
+            rgba(94, 231, 235, 0.035),
+            transparent 42%,
+            rgba(98, 230, 188, 0.028)
+        );
+    content: "";
+    pointer-events: none;
+}
+
+#chat-toggle:hover {
+    width: 220px;
+    border-color: rgba(183, 255, 255, 0.74);
+    border-radius: 24px;
+    color: #e8ffff;
+    background:
+        linear-gradient(
+            145deg,
+            rgba(20, 79, 89, 0.99),
+            rgba(4, 23, 33, 0.998) 72%
+        );
+    box-shadow:
+        0 26px 65px rgba(0, 0, 0, 0.54),
+        0 0 36px rgba(94, 231, 235, 0.23),
+        0 0 68px rgba(98, 230, 188, 0.07),
+        inset 0 1px rgba(255, 255, 255, 0.11);
+    transform: translateX(-71px) translateY(-4px);
+}
+
+#chat-toggle:active {
+    transform: translateX(-71px) translateY(-1px) scale(0.985);
+}
+
+#chat-toggle:focus-visible {
+    outline: 2px solid var(--csai-cyan-bright);
+    outline-offset: 6px;
+}
+
+@keyframes csaiLauncherBorderSpin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.csai-launcher__surface {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    border-radius: inherit;
+    pointer-events: none;
+}
+
+.csai-launcher__surface::before {
+    position: absolute;
+    top: -90%;
+    left: -50%;
+    width: 62%;
+    height: 280%;
+    background:
+        linear-gradient(
+            90deg,
+            transparent,
+            rgba(255, 255, 255, 0.13),
+            transparent
+        );
+    content: "";
+    transform: rotate(26deg) translateX(-180%);
+    animation:
+        csaiLauncherSheen
+        6.8s
+        ease-in-out
+        infinite;
+}
+
+.csai-launcher__surface::after {
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(
+            circle at 28% 20%,
+            rgba(183, 255, 255, 0.13),
+            transparent 29%
+        ),
+        radial-gradient(
+            circle at 84% 86%,
+            rgba(98, 230, 188, 0.08),
+            transparent 31%
+        );
+    content: "";
+}
+
+@keyframes csaiLauncherSheen {
+    0%,
+    64% {
+        transform: rotate(26deg) translateX(-180%);
     }
 
+    84%,
+    100% {
+        transform: rotate(26deg) translateX(430%);
+    }
+}
+
+.csai-launcher__grid {
+    position: absolute;
+    inset: 8px;
+    overflow: hidden;
+    border-radius: 17px;
+    background-image:
+        linear-gradient(
+            rgba(94, 231, 235, 0.052) 1px,
+            transparent 1px
+        ),
+        linear-gradient(
+            90deg,
+            rgba(94, 231, 235, 0.052) 1px,
+            transparent 1px
+        );
+    background-size: 9px 9px;
+    opacity: 0.34;
+    mask-image:
+        radial-gradient(
+            circle at center,
+            #000,
+            transparent 78%
+        );
+    pointer-events: none;
+}
+
+.csai-launcher__core {
+    position: absolute;
+    left: 10px;
+    display: grid;
+    width: 56px;
+    height: 56px;
+    place-items: center;
+    overflow: hidden;
+    border: 1px solid rgba(170, 254, 255, 0.30);
+    border-radius: 17px;
+    background:
+        radial-gradient(
+            circle at 50% 35%,
+            rgba(94, 231, 235, 0.20),
+            rgba(5, 29, 39, 0.91) 58%,
+            rgba(2, 13, 21, 0.98)
+        );
+    box-shadow:
+        inset 0 0 24px rgba(94, 231, 235, 0.07),
+        0 0 20px rgba(94, 231, 235, 0.12);
+    transform-style: preserve-3d;
+    transition:
+        border-color 220ms ease,
+        box-shadow 220ms ease,
+        transform 220ms ease;
+}
+
+.csai-launcher__core::before,
+.csai-launcher__core::after {
+    position: absolute;
+    content: "";
+    pointer-events: none;
+}
+
+.csai-launcher__core::before {
+    inset: 5px;
+    border:
+        1px dashed
+        rgba(98, 230, 188, 0.18);
+    border-radius: 13px;
+    animation:
+        csaiRobotCoreOrbit
+        12s
+        linear
+        infinite;
+}
+
+.csai-launcher__core::after {
+    left: 50%;
+    bottom: 4px;
+    width: 26px;
+    height: 3px;
+    border-radius: 999px;
+    background:
+        linear-gradient(
+            90deg,
+            transparent,
+            var(--csai-cyan-bright),
+            transparent
+        );
+    box-shadow:
+        0 0 11px rgba(94, 231, 235, 0.55);
+    transform: translateX(-50%);
+    animation:
+        csaiRobotCorePulse
+        2.4s
+        ease-in-out
+        infinite;
+}
+
+#chat-toggle:hover .csai-launcher__core {
+    border-color: rgba(183, 255, 255, 0.52);
+    box-shadow:
+        inset 0 0 30px rgba(94, 231, 235, 0.10),
+        0 0 28px rgba(94, 231, 235, 0.18);
+    transform:
+        perspective(280px)
+        rotateY(-8deg)
+        translateZ(6px);
+}
+
+@keyframes csaiRobotCoreOrbit {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes csaiRobotCorePulse {
+    0%,
+    100% {
+        opacity: 0.45;
+        transform: translateX(-50%) scaleX(0.62);
+    }
+
+    50% {
+        opacity: 1;
+        transform: translateX(-50%) scaleX(1);
+    }
+}
+
+.csai-launcher__mark {
+    position: relative;
+    z-index: 2;
+    width: 43px;
+    height: 43px;
+    color: var(--csai-cyan-bright);
+    filter:
+        drop-shadow(
+            0 0 5px
+            rgba(94, 231, 235, 0.62)
+        );
+    animation:
+        csaiRobotFloat
+        4.4s
+        ease-in-out
+        infinite;
+}
+
+@keyframes csaiRobotFloat {
+    0%,
+    100% {
+        transform:
+            translateY(0)
+            rotate(0deg);
+    }
+
+    50% {
+        transform:
+            translateY(-2px)
+            rotate(1.2deg);
+    }
+}
+
+.csai-launcher__status {
+    position: absolute;
+    top: 6px;
+    left: 60px;
+    z-index: 5;
+    display: grid;
+    width: 17px;
+    height: 17px;
+    place-items: center;
+    border: 3px solid var(--csai-bg-1);
+    border-radius: 50%;
+    background: rgba(98, 230, 188, 0.12);
+    box-shadow:
+        0 0 12px rgba(98, 230, 188, 0.44);
+}
+
+.csai-launcher__status > span {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--csai-green);
+    box-shadow:
+        0 0 8px rgba(109, 242, 189, 0.95);
+    animation:
+        csaiStatusPulse
+        2s
+        ease-in-out
+        infinite;
+}
+
+@keyframes csaiStatusPulse {
+    0%,
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 0.55;
+        transform: scale(0.72);
+    }
+}
+
+.csai-launcher__label {
+    position: absolute;
+    left: 80px;
+    display: grid;
+    width: 116px;
+    min-width: 0;
+    justify-items: start;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(14px);
+    transition:
+        opacity 190ms ease 60ms,
+        transform 420ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+#chat-toggle:hover .csai-launcher__label {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.csai-launcher__label strong {
+    overflow: hidden;
+    color: var(--csai-white);
+    font-size: 12px;
+    font-weight: 820;
+    letter-spacing: -0.015em;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.csai-launcher__label small {
+    margin-top: 2px;
+    overflow: hidden;
+    color: var(--csai-text-muted);
+    font-family: var(--csai-mono);
+    font-size: 6px;
+    font-weight: 750;
+    letter-spacing: 0.08em;
+    text-overflow: ellipsis;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.csai-launcher__shortcut {
+    position: absolute;
+    right: 12px;
+    bottom: 8px;
+    display: inline-flex;
+    min-height: 18px;
+    padding: 0 6px;
+    align-items: center;
+    border: 1px solid var(--csai-border-soft);
+    border-radius: 6px;
+    color: var(--csai-text-faint);
+    background: rgba(255, 255, 255, 0.025);
+    font-family: var(--csai-mono);
+    font-size: 5px;
+    font-weight: 750;
+    letter-spacing: 0.05em;
+    opacity: 0;
+    pointer-events: none;
+    transition:
+        opacity 180ms ease 80ms;
+}
+
+#chat-toggle:hover .csai-launcher__shortcut {
+    opacity: 1;
+}
+
+
+/* =============================================================================
+   05. CHAT WINDOW FOUNDATION
+   ============================================================================= */
+
+#chat-window {
+    position: fixed;
+    right: clamp(16px, 2vw, 28px);
+    bottom: clamp(108px, 9vw, 120px);
+    z-index: 9999;
+    display: none;
+    width: min(470px, calc(100vw - 32px));
+    height: min(760px, calc(100vh - 142px));
+    min-height: 560px;
+    flex-direction: column;
+    overflow: hidden;
+    isolation: isolate;
+    border: 1px solid rgba(125, 238, 242, 0.30);
+    border-radius: var(--csai-radius-xlarge);
+    color: var(--csai-text);
+    background:
+        radial-gradient(
+            circle at 5% 0,
+            rgba(94, 231, 235, 0.11),
+            transparent 31%
+        ),
+        radial-gradient(
+            circle at 95% 8%,
+            rgba(98, 230, 188, 0.07),
+            transparent 28%
+        ),
+        linear-gradient(
+            160deg,
+            rgba(8, 31, 42, 0.985),
+            rgba(2, 12, 20, 0.997) 74%
+        );
+    box-shadow:
+        0 42px 115px rgba(0, 0, 0, 0.63),
+        0 0 0 1px rgba(255, 255, 255, 0.025),
+        0 0 54px rgba(94, 231, 235, 0.09),
+        inset 0 1px rgba(255, 255, 255, 0.055);
+    backdrop-filter:
+        blur(24px)
+        saturate(125%);
+    -webkit-backdrop-filter:
+        blur(24px)
+        saturate(125%);
+    transform-origin: right bottom;
+    animation:
+        csaiWindowEnter
+        440ms
+        cubic-bezier(0.16, 1, 0.3, 1)
+        both;
+}
+
+#chat-window::before {
+    position: absolute;
+    inset: 0;
+    z-index: 30;
+    border-radius: inherit;
+    background:
+        linear-gradient(
+            90deg,
+            var(--csai-cyan) 0 34px,
+            transparent 34px calc(100% - 34px),
+            var(--csai-teal) calc(100% - 34px)
+        )
+        top left / 100% 1px no-repeat,
+        linear-gradient(
+            180deg,
+            var(--csai-cyan) 0 34px,
+            transparent 34px calc(100% - 34px),
+            var(--csai-teal) calc(100% - 34px)
+        )
+        top left / 1px 100% no-repeat,
+        linear-gradient(
+            90deg,
+            var(--csai-cyan) 0 34px,
+            transparent 34px calc(100% - 34px),
+            var(--csai-teal) calc(100% - 34px)
+        )
+        bottom left / 100% 1px no-repeat,
+        linear-gradient(
+            180deg,
+            var(--csai-cyan) 0 34px,
+            transparent 34px calc(100% - 34px),
+            var(--csai-teal) calc(100% - 34px)
+        )
+        top right / 1px 100% no-repeat;
+    content: "";
+    opacity: 0.38;
+    pointer-events: none;
+}
+
+#chat-window::after {
+    position: absolute;
+    inset: 5px;
+    z-index: 30;
+    border: 1px solid rgba(255, 255, 255, 0.024);
+    border-radius: calc(var(--csai-radius-xlarge) - 5px);
+    content: "";
+    pointer-events: none;
+}
+
+@keyframes csaiWindowEnter {
+    from {
+        opacity: 0;
+        transform:
+            translateY(28px)
+            scale(0.92)
+            rotateX(-5deg);
+    }
+
+    to {
+        opacity: 1;
+        transform:
+            translateY(0)
+            scale(1)
+            rotateX(0);
+    }
+}
+
+
+/* =============================================================================
+   06. CHAT WINDOW AMBIENT GRAPHICS
+   ============================================================================= */
+
+.csai-window__ambient {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    overflow: hidden;
+    border-radius: inherit;
+    pointer-events: none;
+}
+
+.csai-window__orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(65px);
+    opacity: 0.11;
+}
+
+.csai-window__orb--one {
+    top: -130px;
+    left: -120px;
+    width: 300px;
+    height: 300px;
+    background: var(--csai-cyan);
+    animation:
+        csaiWindowOrbOne
+        15s
+        ease-in-out
+        infinite;
+}
+
+.csai-window__orb--two {
+    right: -120px;
+    bottom: -120px;
+    width: 290px;
+    height: 290px;
+    background: var(--csai-teal);
+    opacity: 0.075;
+    animation:
+        csaiWindowOrbTwo
+        18s
+        ease-in-out
+        infinite;
+}
+
+.csai-window__grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+        linear-gradient(
+            rgba(94, 231, 235, 0.026) 1px,
+            transparent 1px
+        ),
+        linear-gradient(
+            90deg,
+            rgba(94, 231, 235, 0.026) 1px,
+            transparent 1px
+        );
+    background-size: 34px 34px;
+    opacity: 0.52;
+    mask-image:
+        linear-gradient(
+            180deg,
+            rgba(0, 0, 0, 0.9),
+            rgba(0, 0, 0, 0.25) 65%,
+            transparent
+        );
+}
+
+.csai-window__noise {
+    position: absolute;
+    inset: 0;
+    opacity: 0.025;
+    background-image:
+        repeating-radial-gradient(
+            circle at 0 0,
+            transparent 0,
+            rgba(255, 255, 255, 0.65) 1px,
+            transparent 2px,
+            transparent 5px
+        );
+    background-size: 7px 7px;
+    mix-blend-mode: soft-light;
+}
+
+.csai-window__scanline {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 72px;
+    background:
+        linear-gradient(
+            180deg,
+            transparent,
+            rgba(94, 231, 235, 0.028),
+            transparent
+        );
+    opacity: 0.65;
+    animation:
+        csaiWindowScan
+        8s
+        linear
+        infinite;
+}
+
+@keyframes csaiWindowOrbOne {
+    0%,
+    100% {
+        transform: translate3d(0, 0, 0);
+    }
+
+    50% {
+        transform: translate3d(72px, 58px, 0);
+    }
+}
+
+@keyframes csaiWindowOrbTwo {
+    0%,
+    100% {
+        transform: translate3d(0, 0, 0);
+    }
+
+    50% {
+        transform: translate3d(-60px, -46px, 0);
+    }
+}
+
+@keyframes csaiWindowScan {
+    from {
+        top: -100px;
+    }
+
+    to {
+        top: calc(100% + 100px);
+    }
+}
+
+
+/* =============================================================================
+   07. CHAT HEADER
+   ============================================================================= */
+
+#chat-window .chat-header,
+.csai-header {
+    position: relative;
+    z-index: 4;
+    display: flex;
+    min-height: 102px;
+    padding: 17px 17px 15px;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: space-between;
+    gap: 13px;
+    border-bottom: 1px solid var(--csai-border-soft);
+    color: var(--csai-text);
+    background:
+        radial-gradient(
+            circle at 8% 0,
+            rgba(94, 231, 235, 0.11),
+            transparent 32%
+        ),
+        linear-gradient(
+            135deg,
+            rgba(13, 48, 61, 0.96),
+            rgba(4, 20, 30, 0.98)
+        );
+    box-shadow:
+        0 12px 34px rgba(0, 0, 0, 0.18),
+        inset 0 1px rgba(255, 255, 255, 0.045);
+}
+
+.csai-header::before {
+    position: absolute;
+    top: 0;
+    left: 17px;
+    width: 128px;
+    height: 2px;
+    border-radius: 999px;
+    background:
+        linear-gradient(
+            90deg,
+            transparent,
+            var(--csai-cyan-bright),
+            var(--csai-teal),
+            transparent
+        );
+    content: "";
+    box-shadow:
+        0 0 15px rgba(94, 231, 235, 0.32);
+}
+
+.csai-header::after {
+    position: absolute;
+    right: 16%;
+    bottom: 0;
+    width: 110px;
+    height: 1px;
+    background:
+        linear-gradient(
+            90deg,
+            transparent,
+            rgba(98, 230, 188, 0.50),
+            transparent
+        );
+    content: "";
+}
+
+.csai-header__identity {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 12px;
+}
+
+.csai-avatar {
+    position: relative;
+    display: grid;
+    flex: 0 0 auto;
+    place-items: center;
+    color: var(--csai-cyan-bright);
+}
+
+.csai-avatar--header {
+    width: 64px;
+    height: 64px;
+    border: 1px solid rgba(159, 250, 252, 0.33);
+    border-radius: 19px;
+    background:
+        radial-gradient(
+            circle at 50% 36%,
+            rgba(94, 231, 235, 0.16),
+            rgba(6, 30, 40, 0.92) 64%,
+            rgba(2, 15, 22, 0.98)
+        );
+    box-shadow:
+        0 13px 30px rgba(0, 0, 0, 0.27),
+        inset 0 0 24px rgba(94, 231, 235, 0.055),
+        0 0 22px rgba(94, 231, 235, 0.09);
+}
+
+.csai-avatar__halo {
+    position: absolute;
+    inset: -7px;
+    border: 1px solid rgba(94, 231, 235, 0.12);
+    border-radius: 23px;
+    box-shadow:
+        0 0 0 4px rgba(94, 231, 235, 0.016);
+    animation:
+        csaiAvatarHalo
+        3.8s
+        ease-in-out
+        infinite;
+}
+
+.csai-avatar__ring {
+    position: absolute;
+    inset: 5px;
+    border:
+        1px dashed
+        rgba(98, 230, 188, 0.16);
+    border-radius: 15px;
+    animation:
+        csaiAvatarRing
+        12s
+        linear
+        infinite;
+}
+
+.csai-avatar__symbol {
+    position: relative;
+    z-index: 2;
+    width: 49px;
+    height: 49px;
+    filter:
+        drop-shadow(
+            0 0 5px
+            rgba(94, 231, 235, 0.58)
+        );
+    animation:
+        csaiAvatarFloat
+        4.8s
+        ease-in-out
+        infinite;
+}
+
+.csai-avatar__presence {
+    position: absolute;
+    right: -3px;
+    bottom: -3px;
+    z-index: 4;
+    width: 15px;
+    height: 15px;
+    border: 3px solid var(--csai-bg-2);
+    border-radius: 50%;
+    background: var(--csai-green);
+    box-shadow:
+        0 0 9px rgba(109, 242, 189, 0.78);
+}
+
+@keyframes csaiAvatarHalo {
+    0%,
+    100% {
+        opacity: 0.35;
+        transform: scale(0.97);
+    }
+
+    50% {
+        opacity: 0.78;
+        transform: scale(1.04);
+    }
+}
+
+@keyframes csaiAvatarRing {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes csaiAvatarFloat {
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-2px);
+    }
+}
+
+#chat-window .chat-title,
+.csai-header__title {
+    min-width: 0;
+    font-size: inherit;
+    font-weight: inherit;
+}
+
+.csai-header__eyebrow {
+    display: flex;
+    margin-bottom: 4px;
+    align-items: center;
+    gap: 7px;
+    color: var(--csai-cyan);
+    font-family: var(--csai-mono);
+    font-size: 6px;
+    font-weight: 850;
+    letter-spacing: 0.15em;
+}
+
+.csai-live-dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    flex: 0 0 auto;
+    border-radius: 50%;
+    background: var(--csai-green);
+    box-shadow:
+        0 0 9px rgba(109, 242, 189, 0.72);
+    animation:
+        csaiStatusPulse
+        2s
+        ease-in-out
+        infinite;
+}
+
+.csai-header__name-row {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 8px;
+}
+
+.csai-header__name-row h2 {
+    margin: 0;
+    overflow: hidden;
+    color: var(--csai-white);
+    font-size: 20px;
+    font-weight: 830;
+    letter-spacing: -0.035em;
+    line-height: 1.1;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.csai-header__version {
+    display: inline-flex;
+    min-height: 21px;
+    padding: 0 7px;
+    flex: 0 0 auto;
+    align-items: center;
+    border: 1px solid rgba(98, 230, 188, 0.20);
+    border-radius: 999px;
+    color: var(--csai-teal-bright);
+    background: rgba(98, 230, 188, 0.045);
+    font-family: var(--csai-mono);
+    font-size: 5px;
+    font-weight: 850;
+    letter-spacing: 0.08em;
+}
+
+.csai-header__title p {
+    margin: 5px 0 0;
+    overflow: hidden;
+    color: var(--csai-text-muted);
+    font-size: 8px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.csai-header__actions {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 6px;
+}
+
+#chat-window .chat-header button,
+.csai-control-button {
+    position: relative;
+    display: grid;
+    width: 35px;
+    height: 35px;
+    padding: 0;
+    margin: 0;
+    place-items: center;
+    overflow: hidden;
+    border: 1px solid var(--csai-border-soft);
+    border-radius: 11px;
+    color: var(--csai-text-soft);
+    background:
+        linear-gradient(
+            145deg,
+            rgba(19, 57, 70, 0.72),
+            rgba(6, 26, 37, 0.88)
+        );
+    box-shadow:
+        inset 0 1px rgba(255, 255, 255, 0.035);
+    font-size: 0;
+    cursor: pointer;
+    transition:
+        color 180ms ease,
+        border-color 180ms ease,
+        background 180ms ease,
+        box-shadow 180ms ease,
+        transform 180ms ease;
+    appearance: none;
+}
+
+.csai-control-button::before {
+    position: absolute;
+    inset: 0;
+    background:
+        linear-gradient(
+            120deg,
+            transparent 22%,
+            rgba(255, 255, 255, 0.10) 48%,
+            transparent 74%
+        );
+    content: "";
+    transform: translateX(-130%);
+    transition: transform 500ms ease;
+}
+
+.csai-control-button:hover::before {
+    transform: translateX(130%);
+}
+
+.csai-control-button svg {
+    position: relative;
+    z-index: 2;
+    width: 17px;
+    height: 17px;
+}
+
+.csai-control-button:hover {
+    border-color: var(--csai-border-medium);
+    color: var(--csai-cyan-bright);
+    background: rgba(94, 231, 235, 0.075);
+    box-shadow:
+        0 0 18px rgba(94, 231, 235, 0.07);
+    transform: translateY(-2px);
+}
+
+.csai-control-button--voice:hover {
+    border-color: rgba(98, 230, 188, 0.35);
+    color: var(--csai-teal-bright);
+    background: rgba(98, 230, 188, 0.075);
+}
+
+.csai-control-button--close:hover {
+    border-color: rgba(255, 113, 141, 0.36);
+    color: #ffc6d0;
+    background: rgba(255, 113, 141, 0.075);
+}
+
+.csai-control-button:focus-visible {
+    outline: 2px solid var(--csai-cyan-bright);
+    outline-offset: 3px;
+}
+
+
+/* =============================================================================
+   08. SYSTEM STATUS STRIP
+   ============================================================================= */
+
+.csai-status-strip {
+    position: relative;
+    z-index: 3;
+    display: grid;
+    min-height: 52px;
+    padding: 0 14px;
+    flex: 0 0 auto;
+    grid-template-columns:
+        repeat(3, minmax(0, 1fr));
+    align-items: center;
+    gap: 0;
+    border-bottom: 1px solid var(--csai-border-faint);
+    background:
+        linear-gradient(
+            90deg,
+            rgba(7, 30, 41, 0.96),
+            rgba(4, 18, 28, 0.97)
+        );
+    box-shadow:
+        inset 0 1px rgba(255, 255, 255, 0.02);
+}
+
+.csai-status-strip::after {
+    position: absolute;
+    left: 14px;
+    right: 14px;
+    bottom: 0;
+    height: 1px;
+    background:
+        linear-gradient(
+            90deg,
+            transparent,
+            rgba(94, 231, 235, 0.22),
+            rgba(98, 230, 188, 0.14),
+            transparent
+        );
+    content: "";
+}
+
+.csai-status-strip__item {
+    display: flex;
+    min-width: 0;
+    padding: 0 9px;
+    align-items: center;
+    gap: 8px;
+}
+
+.csai-status-strip__icon {
+    display: grid;
+    width: 27px;
+    height: 27px;
+    flex: 0 0 auto;
+    place-items: center;
+    border: 1px solid var(--csai-border-soft);
+    border-radius: 8px;
+    color: var(--csai-cyan);
+    background: rgba(94, 231, 235, 0.045);
+}
+
+.csai-status-strip__icon svg {
+    width: 14px;
+    height: 14px;
+}
+
+.csai-status-strip__item div {
+    display: grid;
+    min-width: 0;
+    gap: 1px;
+}
+
+.csai-status-strip__item small {
+    color: var(--csai-text-faint);
+    font-family: var(--csai-mono);
+    font-size: 5px;
+    font-weight: 850;
+    letter-spacing: 0.10em;
+}
+
+.csai-status-strip__item strong {
+    overflow: hidden;
+    color: var(--csai-text-soft);
+    font-size: 7px;
+    font-weight: 760;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.csai-status-strip__divider {
+    display: none;
+}
+
+
+/* =============================================================================
+   09. CONVERSATION VIEWPORT
+   ============================================================================= */
+
+#chat-box,
+.csai-conversation {
+    position: relative;
+    z-index: 2;
+    min-height: 0;
+    padding: 16px 15px 18px;
+    flex: 1 1 auto;
+    overflow-x: hidden;
+    overflow-y: auto;
+    scroll-behavior: smooth;
+    color: var(--csai-text);
+    background:
+        radial-gradient(
+            circle at 10% 8%,
+            rgba(94, 231, 235, 0.035),
+            transparent 28%
+        ),
+        linear-gradient(
+            180deg,
+            rgba(3, 16, 25, 0.82),
+            rgba(2, 11, 18, 0.93)
+        );
+    scrollbar-width: thin;
+    scrollbar-color:
+        rgba(94, 231, 235, 0.34)
+        transparent;
+}
+
+#chat-box::before {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 76%;
+    height: 1px;
+    background:
+        linear-gradient(
+            90deg,
+            transparent,
+            rgba(94, 231, 235, 0.10),
+            transparent
+        );
+    content: "";
+    transform: translateX(-50%);
+}
+
+#chat-box::-webkit-scrollbar {
+    width: 8px;
+}
+
+#chat-box::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.015);
+}
+
+#chat-box::-webkit-scrollbar-thumb {
+    border: 2px solid transparent;
+    border-radius: 999px;
+    background:
+        linear-gradient(
+            180deg,
+            var(--csai-cyan),
+            var(--csai-teal-deep)
+        );
+    background-clip: padding-box;
+}
+
+
+/* =============================================================================
+   10. RICH INITIAL BOT MESSAGE
+   ============================================================================= */
+
+.csai-message {
+    position: relative;
+    display: grid;
+    width: 100%;
+    margin: 0;
+    grid-template-columns: 34px minmax(0, 1fr);
+    align-items: flex-start;
+    gap: 10px;
+    background: transparent;
+    animation:
+        csaiMessageEnter
+        430ms
+        cubic-bezier(0.16, 1, 0.3, 1)
+        both;
+}
+
+.csai-message__avatar {
+    display: grid;
+    width: 34px;
+    height: 34px;
+    place-items: center;
+    border: 1px solid var(--csai-border);
+    border-radius: 11px;
+    color: var(--csai-cyan-bright);
+    background:
+        radial-gradient(
+            circle at 50% 34%,
+            rgba(94, 231, 235, 0.14),
+            rgba(5, 27, 37, 0.94)
+        );
+    box-shadow:
+        0 8px 21px rgba(0, 0, 0, 0.22),
+        0 0 16px rgba(94, 231, 235, 0.07);
+}
+
+.csai-message__avatar svg {
+    width: 28px;
+    height: 28px;
+    filter:
+        drop-shadow(
+            0 0 3px
+            rgba(94, 231, 235, 0.5)
+        );
+}
+
+.csai-message__content {
+    min-width: 0;
+}
+
+.csai-message__meta {
+    display: flex;
+    min-height: 23px;
+    padding: 0 2px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.csai-message__meta strong {
+    color: var(--csai-white);
+    font-size: 8px;
+    font-weight: 790;
+}
+
+.csai-message__meta > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--csai-text-faint);
+    font-family: var(--csai-mono);
+    font-size: 5px;
+    font-weight: 750;
+    letter-spacing: 0.05em;
+}
+
+.csai-message__bubble {
+    position: relative;
+    padding: 14px;
+    overflow: hidden;
+    border: 1px solid var(--csai-border-soft);
+    border-radius:
+        7px
+        var(--csai-radius-medium)
+        var(--csai-radius-medium)
+        var(--csai-radius-medium);
+    color: var(--csai-text-soft);
+    background:
+        radial-gradient(
+            circle at 95% 4%,
+            rgba(94, 231, 235, 0.055),
+            transparent 32%
+        ),
+        linear-gradient(
+            145deg,
+            rgba(12, 43, 56, 0.81),
+            rgba(6, 24, 35, 0.94)
+        );
+    box-shadow:
+        0 12px 30px rgba(0, 0, 0, 0.19),
+        inset 0 1px rgba(255, 255, 255, 0.026);
+    font-size: 9px;
+    line-height: 1.68;
+}
+
+.csai-message__bubble::before {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 2px;
+    background:
+        linear-gradient(
+            180deg,
+            transparent,
+            var(--csai-cyan),
+            transparent
+        );
+    content: "";
+    opacity: 0.72;
+}
+
+.csai-message__bubble::after {
+    position: absolute;
+    right: -36px;
+    bottom: -36px;
+    width: 100px;
+    height: 100px;
+    border: 1px solid rgba(94, 231, 235, 0.06);
+    border-radius: 50%;
+    content: "";
+    box-shadow:
+        0 0 0 17px rgba(94, 231, 235, 0.011),
+        0 0 0 34px rgba(98, 230, 188, 0.006);
+    pointer-events: none;
+}
+
+.csai-message__bubble p {
+    position: relative;
+    z-index: 2;
+    margin: 0;
+}
+
+.csai-message__bubble p + p {
+    margin-top: 8px;
+}
+
+.csai-message__greeting {
+    color: var(--csai-white);
+    font-size: 11px;
+    font-weight: 790;
+    letter-spacing: -0.015em;
+}
+
+.csai-welcome-grid {
+    position: relative;
+    z-index: 2;
+    display: grid;
+    margin-top: 12px;
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.csai-welcome-grid article {
+    display: flex;
+    min-width: 0;
+    min-height: 61px;
+    padding: 9px;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid var(--csai-border-faint);
+    border-radius: 11px;
+    background: rgba(3, 17, 26, 0.42);
+}
+
+.csai-welcome-grid article > span {
+    display: grid;
+    width: 29px;
+    height: 29px;
+    flex: 0 0 auto;
+    place-items: center;
+    border: 1px solid var(--csai-border-soft);
+    border-radius: 9px;
+    color: var(--csai-cyan);
+    background: rgba(94, 231, 235, 0.04);
+}
+
+.csai-welcome-grid svg {
+    width: 15px;
+    height: 15px;
+}
+
+.csai-welcome-grid article div {
+    display: grid;
+    min-width: 0;
+    gap: 2px;
+}
+
+.csai-welcome-grid strong {
+    overflow: hidden;
+    color: var(--csai-white);
+    font-size: 7px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.csai-welcome-grid small {
+    overflow: hidden;
+    color: var(--csai-text-faint);
+    font-size: 6px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.csai-message__notice {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    min-height: 43px;
+    padding: 9px;
+    margin-top: 10px;
+    align-items: flex-start;
+    gap: 8px;
+    border: 1px solid rgba(255, 210, 115, 0.13);
+    border-radius: 10px;
+    color: var(--csai-amber);
+    background: rgba(255, 210, 115, 0.035);
+}
+
+.csai-message__notice svg {
+    width: 15px;
+    height: 15px;
+    flex: 0 0 auto;
+}
+
+.csai-message__notice span {
+    color: var(--csai-text-muted);
+    font-size: 7px;
+    line-height: 1.5;
+}
+
+.csai-message__footer {
+    display: flex;
+    padding: 5px 3px 0;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    color: var(--csai-text-faint);
+    font-family: var(--csai-mono);
+    font-size: 5px;
+    letter-spacing: 0.045em;
+}
+
+
+/* =============================================================================
+   11. DYNAMIC BOT AND USER MESSAGES FROM EXISTING JAVASCRIPT
+   ============================================================================= */
+
+#chat-box > .bot-message:not(.csai-message),
+#chat-box > .user-message {
+    position: relative;
+    width: fit-content;
+    max-width: 86%;
+    padding: 11px 13px;
+    margin: 12px 0;
+    overflow-wrap: anywhere;
+    border: 1px solid var(--csai-border-soft);
+    color: var(--csai-text);
+    box-shadow:
+        0 10px 26px rgba(0, 0, 0, 0.19),
+        inset 0 1px rgba(255, 255, 255, 0.024);
+    font-size: 9px;
+    line-height: 1.64;
+    animation:
+        csaiMessageEnter
+        330ms
+        cubic-bezier(0.16, 1, 0.3, 1)
+        both;
+}
+
+#chat-box > .bot-message:not(.csai-message) {
+    margin-right: auto;
+    border-radius:
+        6px
+        15px
+        15px
+        15px;
+    border-left-color: rgba(94, 231, 235, 0.40);
+    background:
+        radial-gradient(
+            circle at 95% 0,
+            rgba(94, 231, 235, 0.055),
+            transparent 31%
+        ),
+        linear-gradient(
+            145deg,
+            rgba(12, 42, 55, 0.86),
+            rgba(6, 23, 34, 0.96)
+        );
+}
+
+#chat-box > .bot-message:not(.csai-message)::before {
+    position: absolute;
+    top: 13px;
+    left: -5px;
+    width: 8px;
+    height: 8px;
+    border-left: 1px solid rgba(94, 231, 235, 0.26);
+    border-bottom: 1px solid rgba(94, 231, 235, 0.26);
+    background: rgba(10, 37, 49, 0.96);
+    content: "";
+    transform: rotate(45deg);
+}
+
+#chat-box > .bot-message:not(.csai-message)::after {
+    position: absolute;
+    top: -5px;
+    left: 9px;
+    width: 22px;
+    height: 2px;
+    border-radius: 999px;
+    background:
+        linear-gradient(
+            90deg,
+            var(--csai-cyan),
+            transparent
+        );
+    content: "";
+    box-shadow:
+        0 0 9px rgba(94, 231, 235, 0.28);
+}
+
+#chat-box > .user-message {
+    margin-left: auto;
+    border-color: rgba(98, 230, 188, 0.23);
+    border-right-color: rgba(152, 255, 222, 0.48);
+    border-radius:
+        15px
+        6px
+        15px
+        15px;
+    color: #eafff8;
+    background:
+        radial-gradient(
+            circle at 8% 0,
+            rgba(98, 230, 188, 0.10),
+            transparent 31%
+        ),
+        linear-gradient(
+            145deg,
+            rgba(25, 113, 99, 0.68),
+            rgba(8, 51, 51, 0.92)
+        );
+    box-shadow:
+        0 11px 27px rgba(0, 0, 0, 0.20),
+        0 0 19px rgba(98, 230, 188, 0.035),
+        inset 0 1px rgba(255, 255, 255, 0.035);
+}
+
+#chat-box > .user-message::before {
+    position: absolute;
+    top: 13px;
+    right: -5px;
+    width: 8px;
+    height: 8px;
+    border-top: 1px solid rgba(98, 230, 188, 0.30);
+    border-right: 1px solid rgba(98, 230, 188, 0.30);
+    background: rgba(14, 76, 69, 0.96);
+    content: "";
+    transform: rotate(45deg);
+}
+
+#chat-box > .user-message::after {
+    position: absolute;
+    top: -5px;
+    right: 9px;
+    width: 22px;
+    height: 2px;
+    border-radius: 999px;
+    background:
+        linear-gradient(
+            90deg,
+            transparent,
+            var(--csai-teal)
+        );
+    content: "";
+    box-shadow:
+        0 0 9px rgba(98, 230, 188, 0.28);
+}
+
+#chat-box > .bot-message:not(.csai-message) a,
+#chat-box > .user-message a {
+    color: var(--csai-cyan-bright);
+    text-decoration:
+        underline
+        rgba(183, 255, 255, 0.27);
+    text-underline-offset: 3px;
+}
+
+#chat-box > .bot-message:not(.csai-message) code,
+#chat-box > .user-message code {
+    padding: 2px 5px;
+    border: 1px solid var(--csai-border-soft);
+    border-radius: 5px;
+    color: var(--csai-cyan-bright);
+    background: rgba(94, 231, 235, 0.045);
+    font-family: var(--csai-mono);
+    font-size: 0.9em;
+}
+
+#chat-box > .bot-message:not(.csai-message) ul,
+#chat-box > .user-message ul {
+    padding-left: 17px;
+    margin: 7px 0 0;
+}
+
+#chat-box > .bot-message:not(.csai-message) li,
+#chat-box > .user-message li {
+    margin: 3px 0;
+}
+
+@keyframes csaiMessageEnter {
+    from {
+        opacity: 0;
+        transform:
+            translateY(11px)
+            scale(0.985);
+    }
+
+    to {
+        opacity: 1;
+        transform:
+            translateY(0)
+            scale(1);
+    }
+}
+
+
+/* =============================================================================
+   12. TYPING INDICATOR
+   ============================================================================= */
+
+#typing,
+.csai-typing {
+    position: relative;
+    z-index: 4;
+    display: none;
+    min-height: 49px;
+    padding: 8px 15px;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 9px;
+    border-top: 1px solid var(--csai-border-faint);
+    border-bottom: 1px solid var(--csai-border-faint);
+    color: var(--csai-text-muted);
+    background:
+        linear-gradient(
+            90deg,
+            rgba(7, 29, 40, 0.96),
+            rgba(4, 19, 29, 0.98)
+        );
+    font-size: 8px;
+}
+
+#typing[style*="block"] {
+    display: flex !important;
+}
+
+.csai-typing__avatar {
+    display: grid;
+    width: 31px;
+    height: 31px;
+    flex: 0 0 auto;
+    place-items: center;
+    border: 1px solid var(--csai-border-soft);
+    border-radius: 10px;
+    color: var(--csai-cyan);
+    background: rgba(94, 231, 235, 0.045);
+}
+
+.csai-typing__avatar svg {
+    width: 24px;
+    height: 24px;
+}
+
+.csai-typing__content {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 9px;
+}
+
+.csai-typing__content > span {
+    color: var(--csai-text-muted);
+    font-family: var(--csai-mono);
+    font-size: 6px;
+    font-weight: 750;
+    letter-spacing: 0.05em;
+}
+
+.csai-typing__dots {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.csai-typing__dots i {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--csai-cyan);
+    box-shadow:
+        0 0 7px rgba(94, 231, 235, 0.45);
+    animation:
+        csaiTypingDot
+        1.2s
+        ease-in-out
+        infinite;
+}
+
+.csai-typing__dots i:nth-child(2) {
+    animation-delay: 150ms;
+}
+
+.csai-typing__dots i:nth-child(3) {
+    animation-delay: 300ms;
+}
+
+@keyframes csaiTypingDot {
+    0%,
+    70%,
+    100% {
+        opacity: 0.35;
+        transform: translateY(0);
+    }
+
+    35% {
+        opacity: 1;
+        transform: translateY(-4px);
+    }
+}
+
+
+/* =============================================================================
+   13. QUICK PROMPT DECK
+   ============================================================================= */
+
+#chat-window .suggestions,
+.csai-suggestions {
+    position: relative;
+    z-index: 4;
+    display: block;
+    padding: 12px 14px 13px;
+    flex: 0 0 auto;
+    border-top: 1px solid var(--csai-border-faint);
+    border-bottom: 1px solid var(--csai-border-faint);
+    background:
+        linear-gradient(
+            180deg,
+            rgba(6, 25, 35, 0.975),
+            rgba(3, 16, 25, 0.99)
+        );
+}
+
+.csai-suggestions__header {
+    display: flex;
+    min-height: 32px;
+    margin-bottom: 8px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.csai-suggestions__header > div {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 8px;
+}
+
+.csai-suggestions__spark {
+    display: grid;
+    width: 29px;
+    height: 29px;
+    flex: 0 0 auto;
+    place-items: center;
+    border: 1px solid rgba(173, 145, 255, 0.20);
+    border-radius: 9px;
+    color: var(--csai-violet);
+    background: rgba(173, 145, 255, 0.045);
+    box-shadow:
+        0 0 13px rgba(173, 145, 255, 0.045);
+}
+
+.csai-suggestions__spark svg {
+    width: 16px;
+    height: 16px;
+}
+
+.csai-suggestions__header > div > div {
+    display: grid;
+    min-width: 0;
+    gap: 1px;
+}
+
+.csai-suggestions__header small {
+    color: var(--csai-violet);
+    font-family: var(--csai-mono);
+    font-size: 5px;
+    font-weight: 850;
+    letter-spacing: 0.12em;
+}
+
+.csai-suggestions__header strong {
+    overflow: hidden;
+    color: var(--csai-text-soft);
+    font-size: 8px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.csai-suggestions__hint {
+    color: var(--csai-text-faint);
+    font-family: var(--csai-mono);
+    font-size: 5px;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+}
+
+.csai-suggestions__grid {
+    display: grid;
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+    gap: 7px;
+}
+
+#chat-window .suggestions button,
+.csai-prompt {
+    --csai-prompt-accent: var(--csai-cyan);
+    --csai-prompt-rgb: 94, 231, 235;
+
+    position: relative;
+    display: grid;
+    min-width: 0;
+    min-height: 54px;
+    padding: 8px 9px;
+    grid-template-columns:
+        auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
+    overflow: hidden;
+    border:
+        1px solid
+        rgba(var(--csai-prompt-rgb), 0.13);
+    border-radius: 11px;
+    color: var(--csai-text);
+    background:
+        radial-gradient(
+            circle at 94% 2%,
+            rgba(var(--csai-prompt-rgb), 0.06),
+            transparent 32%
+        ),
+        linear-gradient(
+            145deg,
+            rgba(11, 39, 51, 0.68),
+            rgba(5, 22, 32, 0.89)
+        );
+    box-shadow:
+        inset 0 1px rgba(255, 255, 255, 0.021);
+    font-size: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition:
+        border-color 180ms ease,
+        background 180ms ease,
+        box-shadow 180ms ease,
+        transform 180ms ease;
+    appearance: none;
+}
+
+.csai-prompt--phishing {
+    --csai-prompt-accent: var(--csai-blue);
+    --csai-prompt-rgb: 103, 168, 255;
+}
+
+.csai-prompt--ransomware {
+    --csai-prompt-accent: var(--csai-red);
+    --csai-prompt-rgb: 255, 113, 141;
+}
+
+.csai-prompt--injection {
+    --csai-prompt-accent: var(--csai-violet);
+    --csai-prompt-rgb: 173, 145, 255;
+}
+
+#chat-window .suggestions button::before,
+.csai-prompt::before {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 2px;
+    background:
+        linear-gradient(
+            180deg,
+            transparent,
+            var(--csai-prompt-accent),
+            transparent
+        );
+    content: "";
+    opacity: 0.64;
+}
+
+#chat-window .suggestions button:hover,
+.csai-prompt:hover {
+    border-color:
+        rgba(var(--csai-prompt-rgb), 0.32);
+    color: var(--csai-white);
+    background:
+        radial-gradient(
+            circle at 94% 2%,
+            rgba(var(--csai-prompt-rgb), 0.10),
+            transparent 38%
+        ),
+        linear-gradient(
+            145deg,
+            rgba(14, 50, 63, 0.76),
+            rgba(6, 27, 38, 0.94)
+        );
+    box-shadow:
+        0 11px 25px rgba(0, 0, 0, 0.18),
+        0 0 20px
+        rgba(var(--csai-prompt-rgb), 0.035);
+    transform: translateY(-2px);
+}
+
+.csai-prompt__icon {
+    display: grid;
+    width: 29px;
+    height: 29px;
+    place-items: center;
+    border:
+        1px solid
+        rgba(var(--csai-prompt-rgb), 0.19);
+    border-radius: 9px;
+    color: var(--csai-prompt-accent);
+    background:
+        rgba(var(--csai-prompt-rgb), 0.045);
+}
+
+.csai-prompt__icon svg {
+    width: 16px;
+    height: 16px;
+}
+
+.csai-prompt > span:nth-child(2) {
+    display: grid;
+    min-width: 0;
+    gap: 1px;
+}
+
+.csai-prompt strong {
+    overflow: hidden;
+    color: var(--csai-text-soft);
+    font-size: 7px;
+    font-weight: 780;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.csai-prompt small {
+    overflow: hidden;
+    color: var(--csai-text-faint);
+    font-size: 5px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.csai-prompt__arrow {
+    width: 13px;
+    height: 13px;
+    color: var(--csai-text-faint);
+    transition:
+        color 180ms ease,
+        transform 180ms ease;
+}
+
+.csai-prompt:hover .csai-prompt__arrow {
+    color: var(--csai-prompt-accent);
+    transform: translateX(2px);
+}
+
+
+/* =============================================================================
+   14. SECURE MESSAGE COMPOSER
+   ============================================================================= */
+
+#chat-window .chat-input,
+.csai-composer {
+    position: relative;
+    z-index: 5;
+    display: block;
+    padding: 12px 14px 11px;
+    flex: 0 0 auto;
+    border-top: 1px solid var(--csai-border-soft);
+    background:
+        radial-gradient(
+            circle at 88% 0,
+            rgba(98, 230, 188, 0.055),
+            transparent 27%
+        ),
+        linear-gradient(
+            180deg,
+            rgba(7, 29, 40, 0.985),
+            rgba(3, 15, 24, 0.998)
+        );
+    box-shadow:
+        0 -15px 34px rgba(0, 0, 0, 0.20),
+        inset 0 1px rgba(255, 255, 255, 0.025);
+}
+
+.csai-composer__frame {
+    position: relative;
+    display: grid;
+    min-height: 52px;
+    padding: 5px;
+    grid-template-columns:
+        auto minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 6px;
+    overflow: hidden;
+    border: 1px solid var(--csai-border);
+    border-radius: 16px;
+    background:
+        linear-gradient(
+            145deg,
+            rgba(11, 40, 53, 0.78),
+            rgba(5, 22, 32, 0.94)
+        );
+    box-shadow:
+        inset 0 1px rgba(255, 255, 255, 0.03),
+        0 10px 24px rgba(0, 0, 0, 0.15);
+    transition:
+        border-color 190ms ease,
+        box-shadow 190ms ease,
+        background 190ms ease;
+}
+
+.csai-composer__frame:focus-within {
+    border-color: rgba(183, 255, 255, 0.52);
+    background:
+        linear-gradient(
+            145deg,
+            rgba(13, 48, 61, 0.84),
+            rgba(5, 25, 35, 0.96)
+        );
+    box-shadow:
+        inset 0 1px rgba(255, 255, 255, 0.04),
+        0 0 0 3px rgba(94, 231, 235, 0.045),
+        0 0 29px rgba(94, 231, 235, 0.07);
+}
+
+.csai-composer__frame::before {
+    position: absolute;
+    top: 0;
+    left: 10%;
+    width: 80%;
+    height: 1px;
+    background:
+        linear-gradient(
+            90deg,
+            transparent,
+            rgba(183, 255, 255, 0.32),
+            transparent
+        );
+    content: "";
+}
+
+.csai-composer__leading {
+    display: grid;
+    width: 33px;
+    height: 33px;
+    place-items: center;
+    border: 1px solid var(--csai-border-soft);
+    border-radius: 10px;
+    color: var(--csai-teal);
+    background: rgba(98, 230, 188, 0.04);
+}
+
+.csai-composer__leading svg {
+    width: 17px;
+    height: 17px;
+}
+
+#chat-window .chat-input input,
+#message,
+.csai-composer__input {
+    width: 100%;
+    min-width: 0;
+    height: 40px;
+    padding: 0 6px;
+    border: 0;
+    outline: 0;
+    border-radius: 0;
+    color: var(--csai-white);
+    background: transparent;
+    box-shadow: none;
+    font-family: var(--csai-font);
+    font-size: 9px;
+    caret-color: var(--csai-cyan-bright);
+}
+
+#message::placeholder,
+.csai-composer__input::placeholder {
+    color: var(--csai-text-faint);
+    opacity: 1;
+}
+
+.csai-composer__key {
+    display: inline-flex;
+    min-height: 22px;
+    padding: 0 7px;
+    align-items: center;
+    border: 1px solid var(--csai-border-faint);
+    border-radius: 7px;
+    color: var(--csai-text-faint);
+    background: rgba(255, 255, 255, 0.018);
+    font-family: var(--csai-mono);
+    font-size: 5px;
+    font-weight: 750;
+}
+
+#chat-window .chat-input button,
+#send-btn,
+.csai-send-button {
+    position: relative;
+    display: grid;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    flex: 0 0 auto;
+    place-items: center;
+    overflow: hidden;
+    border: 1px solid rgba(179, 255, 240, 0.34);
+    border-radius: 12px;
+    color: #eafff7;
+    background:
+        linear-gradient(
+            145deg,
+            rgba(35, 165, 137, 0.87),
+            rgba(24, 112, 110, 0.94)
+        );
+    box-shadow:
+        0 10px 22px rgba(0, 0, 0, 0.20),
+        0 0 20px rgba(98, 230, 188, 0.09),
+        inset 0 1px rgba(255, 255, 255, 0.08);
+    font-size: 0;
+    cursor: pointer;
+    transition:
+        border-color 180ms ease,
+        background 180ms ease,
+        box-shadow 180ms ease,
+        transform 180ms ease;
+    appearance: none;
+}
+
+.csai-send-button::before {
+    position: absolute;
+    inset: 0;
+    background:
+        linear-gradient(
+            120deg,
+            transparent 20%,
+            rgba(255, 255, 255, 0.17) 48%,
+            transparent 76%
+        );
+    content: "";
+    transform: translateX(-135%);
+    transition: transform 500ms ease;
+}
+
+.csai-send-button:hover::before {
+    transform: translateX(135%);
+}
+
+.csai-send-button:hover {
+    border-color: rgba(184, 255, 229, 0.64);
+    background:
+        linear-gradient(
+            145deg,
+            rgba(42, 192, 157, 0.92),
+            rgba(29, 139, 130, 0.97)
+        );
+    box-shadow:
+        0 12px 27px rgba(0, 0, 0, 0.25),
+        0 0 28px rgba(98, 230, 188, 0.16);
+    transform:
+        translateY(-2px)
+        scale(1.02);
+}
+
+.csai-send-button:active {
+    transform:
+        translateY(0)
+        scale(0.97);
+}
+
+.csai-send-button svg {
+    position: relative;
+    z-index: 2;
+    width: 18px;
+    height: 18px;
+}
+
+.csai-send-button__glow {
+    position: absolute;
+    inset: 8px;
+    border-radius: 8px;
+    background: rgba(184, 255, 229, 0.12);
+    filter: blur(9px);
+    opacity: 0.3;
+    animation:
+        csaiSendGlow
+        2.6s
+        ease-in-out
+        infinite;
+}
+
+@keyframes csaiSendGlow {
+    0%,
+    100% {
+        opacity: 0.23;
+        transform: scale(0.84);
+    }
+
+    50% {
+        opacity: 0.64;
+        transform: scale(1.15);
+    }
+}
+
+.csai-composer__footer {
+    display: flex;
+    min-height: 25px;
+    padding: 7px 3px 0;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    color: var(--csai-text-faint);
+    font-family: var(--csai-mono);
+    font-size: 5px;
+    letter-spacing: 0.035em;
+}
+
+.csai-composer__footer > span:first-child {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--csai-teal);
+}
+
+.csai-composer__footer svg {
+    width: 12px;
+    height: 12px;
+}
+
+
+/* =============================================================================
+   15. SCREEN-READER UTILITY
+   ============================================================================= */
+
+.csai-sr-only {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    border: 0 !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+}
+
+
+/* =============================================================================
+   16. JS-COMPATIBLE VOICE BUTTON EMOJI FALLBACK
+   Existing JS temporarily replaces the voice SVG using innerHTML.
+   ============================================================================= */
+
+#voice-btn:not(:has(svg)) {
+    color: var(--csai-teal-bright);
+    font-size: 15px;
+}
+
+#voice-btn:not(:has(svg))::after {
+    position: absolute;
+    inset: 3px;
+    border: 1px solid rgba(98, 230, 188, 0.16);
+    border-radius: 8px;
+    content: "";
+    animation:
+        csaiVoiceListen
+        1.15s
+        ease-in-out
+        infinite;
+}
+
+@keyframes csaiVoiceListen {
+    0%,
+    100% {
+        opacity: 0.2;
+        transform: scale(0.86);
+    }
+
+    50% {
+        opacity: 0.75;
+        transform: scale(1.04);
+    }
+}
+
+
+/* =============================================================================
+   17. RESPONSIVE: SHORT DESKTOP WINDOWS
+   ============================================================================= */
+
+@media (max-height: 760px) and (min-width: 641px) {
+
+    #chat-window {
+        bottom: 94px;
+        height: calc(100vh - 112px);
+        min-height: 500px;
+    }
+
+    .csai-status-strip {
+        min-height: 44px;
+    }
+
+    #chat-window .chat-header,
+    .csai-header {
+        min-height: 88px;
+        padding-top: 12px;
+        padding-bottom: 11px;
+    }
+
+    .csai-avatar--header {
+        width: 54px;
+        height: 54px;
+        border-radius: 16px;
+    }
+
+    .csai-avatar__symbol {
+        width: 42px;
+        height: 42px;
+    }
+
+    .csai-suggestions {
+        padding-top: 9px;
+        padding-bottom: 9px;
+    }
+
+    .csai-suggestions__header {
+        display: none;
+    }
+
+    .csai-prompt {
+        min-height: 45px;
+    }
+
+    .csai-prompt small {
+        display: none;
+    }
+}
+
+
+/* =============================================================================
+   18. RESPONSIVE: TABLET AND MOBILE
+   ============================================================================= */
+
+@media (max-width: 640px) {
+
+    #chatbot-container {
+        right: 14px;
+        bottom: 14px;
+        width: 76px;
+        height: 76px;
+    }
+
+    #chat-toggle {
+        width: 68px;
+        height: 68px;
+        border-radius: 21px;
+    }
+
+    #chat-toggle:hover,
+    #chat-toggle:active {
+        width: 68px;
+        border-radius: 21px;
+        transform: translateY(-3px);
+    }
+
+    .csai-launcher__core {
+        left: 8px;
+        width: 50px;
+        height: 50px;
+        border-radius: 15px;
+    }
+
+    .csai-launcher__mark {
+        width: 38px;
+        height: 38px;
+    }
+
+    .csai-launcher__label,
+    .csai-launcher__shortcut {
+        display: none;
+    }
+
+    .csai-launcher__status {
+        top: 4px;
+        left: 52px;
+    }
+
+    #chat-window {
+        right: 10px;
+        bottom: 92px;
+        width: calc(100vw - 20px);
+        height: calc(100dvh - 112px);
+        min-height: 0;
+        border-radius: 25px;
+    }
+
+    #chat-window .chat-header,
+    .csai-header {
+        min-height: 88px;
+        padding: 13px;
+    }
+
+    .csai-avatar--header {
+        width: 52px;
+        height: 52px;
+        border-radius: 16px;
+    }
+
+    .csai-avatar__symbol {
+        width: 40px;
+        height: 40px;
+    }
+
+    .csai-header__name-row h2 {
+        max-width: 155px;
+        font-size: 17px;
+    }
+
+    .csai-header__version {
+        display: none;
+    }
+
+    .csai-header__title p {
+        max-width: 190px;
+    }
+
+    .csai-control-button {
+        width: 32px;
+        height: 32px;
+        border-radius: 10px;
+    }
+
+    .csai-control-button svg {
+        width: 15px;
+        height: 15px;
+    }
+
+    .csai-status-strip {
+        min-height: 47px;
+        padding-inline: 8px;
+    }
+
+    .csai-status-strip__item {
+        padding-inline: 5px;
+        gap: 5px;
+    }
+
+    .csai-status-strip__icon {
+        width: 25px;
+        height: 25px;
+    }
+
+    .csai-status-strip__item small {
+        display: none;
+    }
+
+    .csai-status-strip__item strong {
+        font-size: 6px;
+    }
+
+    #chat-box {
+        padding: 13px 12px 15px;
+    }
+
+    .csai-welcome-grid {
+        grid-template-columns: 1fr;
+    }
+
+    #chat-window .suggestions,
+    .csai-suggestions {
+        padding: 10px 11px;
+    }
+
+    .csai-suggestions__header {
+        display: none;
+    }
+
+    .csai-suggestions__grid {
+        display: flex;
+        overflow-x: auto;
+        gap: 7px;
+        scrollbar-width: none;
+    }
+
+    .csai-suggestions__grid::-webkit-scrollbar {
+        display: none;
+    }
+
+    #chat-window .suggestions button,
+    .csai-prompt {
+        min-width: 164px;
+        min-height: 48px;
+    }
+
+    .csai-prompt small {
+        display: none;
+    }
+
+    #chat-window .chat-input,
+    .csai-composer {
+        padding: 10px 11px 9px;
+    }
+
+    .csai-composer__key {
+        display: none;
+    }
+
+    .csai-composer__frame {
+        grid-template-columns:
+            auto minmax(0, 1fr) auto;
+    }
+
+    .csai-composer__footer > span:last-child {
+        display: none;
+    }
+}
+
+
+/* =============================================================================
+   19. RESPONSIVE: VERY SMALL MOBILE
+   ============================================================================= */
+
+@media (max-width: 390px) {
+
+    #chat-window {
+        right: 6px;
+        bottom: 84px;
+        width: calc(100vw - 12px);
+        height: calc(100dvh - 96px);
+        border-radius: 21px;
+    }
+
+    .csai-header__identity {
+        gap: 8px;
+    }
+
+    .csai-avatar--header {
+        width: 45px;
+        height: 45px;
+        border-radius: 14px;
+    }
+
+    .csai-avatar__symbol {
+        width: 35px;
+        height: 35px;
+    }
+
+    .csai-header__name-row h2 {
+        max-width: 128px;
+        font-size: 15px;
+    }
+
+    .csai-header__title p,
+    .csai-header__eyebrow {
+        display: none;
+    }
+
+    .csai-header__actions {
+        gap: 4px;
+    }
+
+    .csai-control-button {
+        width: 29px;
+        height: 29px;
+        border-radius: 9px;
+    }
+
+    .csai-status-strip__item {
+        justify-content: center;
+    }
+
+    .csai-status-strip__item div {
+        display: none;
+    }
+
+    .csai-status-strip__icon {
+        width: 28px;
+        height: 28px;
+    }
+
+    .csai-message {
+        grid-template-columns: 29px minmax(0, 1fr);
+        gap: 8px;
+    }
+
+    .csai-message__avatar {
+        width: 29px;
+        height: 29px;
+        border-radius: 9px;
+    }
+
+    .csai-message__avatar svg {
+        width: 24px;
+        height: 24px;
+    }
+
+    #chat-box > .bot-message:not(.csai-message),
+    #chat-box > .user-message {
+        max-width: 91%;
+    }
+
+    .csai-composer__leading {
+        display: none;
+    }
+
+    .csai-composer__frame {
+        grid-template-columns:
+            minmax(0, 1fr)
+            auto;
+    }
+}
+
+
+/* =============================================================================
+   20. HOVER-FREE POINTERS
+   ============================================================================= */
+
+@media (hover: none) {
+
+    #chat-toggle:hover {
+        width: 78px;
+        border-radius: 24px;
+        transform: none;
+    }
+
+    #chat-toggle:hover .csai-launcher__label,
+    #chat-toggle:hover .csai-launcher__shortcut {
+        opacity: 0;
+    }
+
+    #chat-toggle:hover .csai-launcher__core {
+        transform: none;
+    }
+}
+
+
+/* =============================================================================
+   21. REDUCED MOTION
+   ============================================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+
+    #chatbot-container *,
+    #chatbot-container *::before,
+    #chatbot-container *::after,
+    #chat-window *,
+    #chat-window *::before,
+    #chat-window *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.001ms !important;
+    }
+
+    .csai-window__scanline,
+    .csai-launcher-aura__scan {
+        display: none;
+    }
+}
+
+
+/* =============================================================================
+   22. HIGH-CONTRAST MODE
+   ============================================================================= */
+
+@media (prefers-contrast: more) {
+
+    #chatbot-container,
+    #chat-window {
+        --csai-border-faint:
+            rgba(183, 255, 255, 0.22);
+
+        --csai-border-soft:
+            rgba(183, 255, 255, 0.40);
+
+        --csai-border:
+            rgba(183, 255, 255, 0.58);
+
+        --csai-border-medium:
+            rgba(183, 255, 255, 0.74);
+
+        --csai-border-strong:
+            rgba(220, 255, 255, 0.94);
+
+        --csai-text-soft: #d6f0f3;
+        --csai-text-muted: #b4d0d7;
+        --csai-text-faint: #92b4bf;
+    }
+}
+
+
+/* =============================================================================
+   23. FORCED-COLORS ACCESSIBILITY
+   ============================================================================= */
+
+@media (forced-colors: active) {
+
+    #chat-toggle,
+    #chat-window,
+    .csai-control-button,
+    .csai-prompt,
+    .csai-composer__frame,
+    .csai-send-button {
+        border: 1px solid ButtonText;
+        background: Canvas;
+        box-shadow: none;
+        color: CanvasText;
+        forced-color-adjust: auto;
+    }
+
+    .csai-window__ambient,
+    .csai-launcher-aura,
+    .csai-window__noise,
+    .csai-window__grid {
+        display: none;
+    }
+}
+
+
+/* =============================================================================
+   24. PRINT MODE
+   ============================================================================= */
+
+@media print {
+
+    #chatbot-container,
+    #chat-window {
+        display: none !important;
+    }
 }

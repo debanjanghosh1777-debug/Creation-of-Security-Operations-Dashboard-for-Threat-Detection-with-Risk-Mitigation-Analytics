@@ -1,313 +1,1964 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="cyber-dark">
 
 <head>
 
-<meta charset="UTF-8">
+    <!-- =====================================================
+         BASIC DOCUMENT SETTINGS
+    ====================================================== -->
 
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
 
-<title>AI Threat Detection - Login</title>
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 
-<link rel="stylesheet"
-href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <meta
+        name="description"
+        content="Secure access portal for the AI Threat Detection and Security Operations Center platform.">
 
-<link rel="stylesheet"
-href="{{ url_for('static', filename='css/login.css') }}">
+    <meta
+        name="theme-color"
+        content="#050b14">
+
+    <meta
+        name="color-scheme"
+        content="dark">
+
+    <title>
+        AI Threat Detection | Secure SOC Access
+    </title>
+
+
+    <!-- =====================================================
+         GOOGLE FONTS
+    ====================================================== -->
+
+    <link
+        rel="preconnect"
+        href="https://fonts.googleapis.com">
+
+    <link
+        rel="preconnect"
+        href="https://fonts.gstatic.com"
+        crossorigin>
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Orbitron:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet">
+
+
+    <!-- =====================================================
+         FONT AWESOME
+    ====================================================== -->
+
+    <link
+        rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+
+    <!-- =====================================================
+         LOGIN PAGE STYLESHEET
+    ====================================================== -->
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/login.css') }}">
 
 </head>
 
-<body>
 
-<canvas id="cyberCanvas"></canvas>
+<body class="auth-page">
 
-<div class="login-background">
-    <div class="blur-circle one"></div>
-    <div class="blur-circle two"></div>
-</div>
 
-<div class="login-container">
+    <!-- =====================================================
+         ACCESSIBILITY: SKIP LINK
+    ====================================================== -->
 
-    <!-- LEFT -->
+    <a
+        href="#loginForm"
+        class="skip-link">
 
-    <div class="login-left">
+        Skip to login form
 
-        <img
-        src="{{ url_for('static', filename='images/logo.png') }}"
-        class="login-logo">
+    </a>
 
-        <h1>
 
-            AI Threat Detection
+    <!-- =====================================================
+         PAGE PRELOADER
+         JavaScript will hide this after initialization
+    ====================================================== -->
 
-        </h1>
+    <div
+        class="page-preloader"
+        id="pagePreloader"
+        aria-hidden="true">
 
-        <h3>
+        <div class="preloader-core">
 
-            Security Operations Center
+            <div class="preloader-ring preloader-ring--outer"></div>
 
-        </h3>
+            <div class="preloader-ring preloader-ring--middle"></div>
 
-        <p>
+            <div class="preloader-ring preloader-ring--inner"></div>
 
-            AI Powered Malware Detection,
-            Threat Intelligence,
-            Network Analysis
-            &
-            Security Monitoring Platform.
-
-        </p>
-
-        <div class="feature-list">
-
-            <div>
+            <div class="preloader-symbol">
 
                 <i class="fa-solid fa-shield-halved"></i>
 
-                AI Malware Detection
+            </div>
+
+        </div>
+
+        <div class="preloader-information">
+
+            <span class="preloader-title">
+                INITIALIZING SECURITY CORE
+            </span>
+
+            <div class="preloader-progress">
+
+                <span
+                    class="preloader-progress__bar"
+                    id="preloaderProgress">
+                </span>
 
             </div>
 
-            <div>
+            <span
+                class="preloader-percentage"
+                id="preloaderPercentage">
 
-                <i class="fa-solid fa-network-wired"></i>
+                0%
 
-                Network Security
-
-            </div>
-
-            <div>
-
-                <i class="fa-solid fa-globe"></i>
-
-                Threat Intelligence
-
-            </div>
-
-            <div>
-
-                <i class="fa-solid fa-brain"></i>
-
-                XGBoost AI Engine
-
-            </div>
+            </span>
 
         </div>
 
     </div>
 
-    <!-- RIGHT -->
 
-    <div class="login-right">
+    <!-- =====================================================
+         ADVANCED ANIMATED BACKGROUND
+    ====================================================== -->
 
-        <div class="login-card">
+    <div
+        class="background-system"
+        aria-hidden="true">
 
-            <h2>
 
-                Login
+        <!-- Neural particle network -->
+
+        <canvas
+            id="neuralCanvas"
+            class="background-canvas background-canvas--neural">
+        </canvas>
+
+
+        <!-- Digital rain and data-stream animation -->
+
+        <canvas
+            id="matrixCanvas"
+            class="background-canvas background-canvas--matrix">
+        </canvas>
+
+
+        <!-- Cursor-interactive light -->
+
+        <div
+            class="cursor-light"
+            id="cursorLight">
+        </div>
+
+
+        <!-- Animated aurora layers -->
+
+        <div class="aurora-system">
+
+            <div class="aurora aurora--cyan"></div>
+
+            <div class="aurora aurora--blue"></div>
+
+            <div class="aurora aurora--violet"></div>
+
+        </div>
+
+
+        <!-- Perspective cyber grid -->
+
+        <div class="cyber-grid">
+
+            <div class="cyber-grid__surface"></div>
+
+            <div class="cyber-grid__horizon"></div>
+
+        </div>
+
+
+        <!-- Floating digital data streams -->
+
+        <div class="data-streams">
+
+            <div
+                class="data-stream data-stream--one"
+                data-stream="01">
+
+                01001011&nbsp;10110100&nbsp;SECURE_NODE
+
+            </div>
+
+            <div
+                class="data-stream data-stream--two"
+                data-stream="02">
+
+                XGB_ENGINE&nbsp;::&nbsp;THREAT_ANALYSIS
+
+            </div>
+
+            <div
+                class="data-stream data-stream--three"
+                data-stream="03">
+
+                PACKET_INSPECTION&nbsp;::&nbsp;ACTIVE
+
+            </div>
+
+            <div
+                class="data-stream data-stream--four"
+                data-stream="04">
+
+                MALWARE_SIGNATURE&nbsp;::&nbsp;SCANNING
+
+            </div>
+
+            <div
+                class="data-stream data-stream--five"
+                data-stream="05">
+
+                NEURAL_DEFENCE&nbsp;::&nbsp;ONLINE
+
+            </div>
+
+        </div>
+
+
+        <!-- Floating geometric cybersecurity shapes -->
+
+        <div class="floating-geometry">
+
+            <div class="geometry geometry--hexagon-one"></div>
+
+            <div class="geometry geometry--hexagon-two"></div>
+
+            <div class="geometry geometry--triangle"></div>
+
+            <div class="geometry geometry--diamond"></div>
+
+            <div class="geometry geometry--circle"></div>
+
+        </div>
+
+
+        <!-- Light beams -->
+
+        <div class="light-beams">
+
+            <span class="light-beam light-beam--one"></span>
+
+            <span class="light-beam light-beam--two"></span>
+
+            <span class="light-beam light-beam--three"></span>
+
+        </div>
+
+
+        <!-- Screen overlays -->
+
+        <div class="scanline-overlay"></div>
+
+        <div class="noise-overlay"></div>
+
+        <div class="vignette-overlay"></div>
+
+    </div>
+
+
+    <!-- =====================================================
+         TOP SYSTEM STATUS BAR
+    ====================================================== -->
+
+    <header class="system-bar">
+
+        <div class="system-bar__brand">
+
+            <span class="system-bar__brand-icon">
+
+                <i class="fa-solid fa-shield-virus"></i>
+
+            </span>
+
+            <div class="system-bar__brand-text">
+
+                <strong>
+                    ATD SECURITY NETWORK
+                </strong>
+
+                <span>
+                    Secure Operations Gateway
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <div class="system-bar__telemetry">
+
+
+            <div class="telemetry-item">
+
+                <span class="telemetry-item__label">
+                    AI CORE
+                </span>
+
+                <strong
+                    class="telemetry-item__value telemetry-item__value--online"
+                    id="engineStatus">
+
+                    ONLINE
+
+                </strong>
+
+            </div>
+
+
+            <div class="telemetry-item">
+
+                <span class="telemetry-item__label">
+                    NETWORK
+                </span>
+
+                <strong
+                    class="telemetry-item__value"
+                    id="networkStatus">
+
+                    SECURE
+
+                </strong>
+
+            </div>
+
+
+            <div class="telemetry-item">
+
+                <span class="telemetry-item__label">
+                    SYSTEM TIME
+                </span>
+
+                <strong
+                    class="telemetry-item__value telemetry-item__value--mono"
+                    id="systemClock">
+
+                    --:--:--
+
+                </strong>
+
+            </div>
+
+
+            <button
+                type="button"
+                class="sound-control"
+                id="soundControl"
+                aria-label="Toggle interface sound"
+                aria-pressed="false">
+
+                <i
+                    class="fa-solid fa-volume-xmark"
+                    aria-hidden="true">
+                </i>
+
+            </button>
+
+        </div>
+
+    </header>
+
+
+    <!-- =====================================================
+         MAIN AUTHENTICATION INTERFACE
+    ====================================================== -->
+
+    <main class="auth-shell">
+
+
+        <!-- =================================================
+             LEFT: SECURITY VISUALIZATION PANEL
+        ================================================== -->
+
+        <section
+            class="visual-panel"
+            aria-labelledby="platformTitle">
+
+
+            <!-- Main heading -->
+
+            <div class="visual-panel__introduction">
+
+                <div class="security-badge">
+
+                    <span class="security-badge__pulse"></span>
+
+                    <span>
+                        AI-POWERED SECURITY OPERATIONS
+                    </span>
+
+                </div>
+
+
+                <h1
+                    class="platform-title"
+                    id="platformTitle">
+
+                    <span class="platform-title__small">
+                        INTELLIGENT
+                    </span>
+
+                    <span
+                        class="platform-title__main"
+                        data-text="THREAT DEFENCE">
+
+                        THREAT DEFENCE
+
+                    </span>
+
+                    <span class="platform-title__accent">
+                        BEYOND HUMAN SPEED
+                    </span>
+
+                </h1>
+
+
+                <p class="platform-description">
+
+                    A unified security operations platform for intelligent
+                    malware detection, network monitoring, threat intelligence,
+                    automated risk scoring and real-time security analysis.
+
+                </p>
+
+            </div>
+
+
+            <!-- Central holographic AI core -->
+
+            <div class="ai-core-visual">
+
+
+                <!-- Orbital security labels -->
+
+                <div class="orbit-label orbit-label--malware">
+
+                    <i class="fa-solid fa-bug-slash"></i>
+
+                    <span>
+                        Malware Analysis
+                    </span>
+
+                </div>
+
+
+                <div class="orbit-label orbit-label--network">
+
+                    <i class="fa-solid fa-network-wired"></i>
+
+                    <span>
+                        Network Defence
+                    </span>
+
+                </div>
+
+
+                <div class="orbit-label orbit-label--intelligence">
+
+                    <i class="fa-solid fa-globe"></i>
+
+                    <span>
+                        Threat Intelligence
+                    </span>
+
+                </div>
+
+
+                <div class="orbit-label orbit-label--prediction">
+
+                    <i class="fa-solid fa-brain"></i>
+
+                    <span>
+                        AI Prediction
+                    </span>
+
+                </div>
+
+
+                <!-- Rotating rings -->
+
+                <div class="core-orbit core-orbit--outer">
+
+                    <span class="orbit-node orbit-node--one"></span>
+
+                    <span class="orbit-node orbit-node--two"></span>
+
+                    <span class="orbit-node orbit-node--three"></span>
+
+                </div>
+
+
+                <div class="core-orbit core-orbit--middle">
+
+                    <span class="orbit-code">
+                        XGB
+                    </span>
+
+                    <span class="orbit-code">
+                        SOC
+                    </span>
+
+                    <span class="orbit-code">
+                        AI
+                    </span>
+
+                </div>
+
+
+                <div class="core-orbit core-orbit--inner"></div>
+
+
+                <!-- Scanner arcs -->
+
+                <div class="scanner-arcs">
+
+                    <span class="scanner-arc scanner-arc--one"></span>
+
+                    <span class="scanner-arc scanner-arc--two"></span>
+
+                    <span class="scanner-arc scanner-arc--three"></span>
+
+                </div>
+
+
+                <!-- Central logo reactor -->
+
+                <div class="logo-reactor">
+
+                    <div class="logo-reactor__energy"></div>
+
+                    <div class="logo-reactor__ring"></div>
+
+                    <div class="logo-reactor__inner">
+
+                        <img
+                            src="{{ url_for('static', filename='images/logo.png') }}"
+                            alt="AI Threat Detection logo"
+                            class="platform-logo"
+                            width="180"
+                            height="180"
+                            loading="eager">
+
+                    </div>
+
+                    <span class="logo-reactor__pulse"></span>
+
+                </div>
+
+
+                <!-- Radar sweep -->
+
+                <div class="radar-sweep"></div>
+
+
+                <!-- Coordinates -->
+
+                <span class="core-coordinate core-coordinate--top">
+                    NODE 01
+                </span>
+
+                <span class="core-coordinate core-coordinate--right">
+                    AI 99.8
+                </span>
+
+                <span class="core-coordinate core-coordinate--bottom">
+                    CORE V2
+                </span>
+
+                <span class="core-coordinate core-coordinate--left">
+                    SOC 24/7
+                </span>
+
+            </div>
+
+
+            <!-- Threat activity visualization -->
+
+            <div class="threat-monitor">
+
+                <div class="threat-monitor__header">
+
+                    <div>
+
+                        <span class="panel-eyebrow">
+                            LIVE SECURITY VISUALIZATION
+                        </span>
+
+                        <h2>
+                            Global Threat Activity
+                        </h2>
+
+                    </div>
+
+                    <div class="live-status">
+
+                        <span class="live-status__dot"></span>
+
+                        LIVE
+
+                    </div>
+
+                </div>
+
+
+                <div class="threat-monitor__map">
+
+                    <svg
+                        class="threat-globe"
+                        viewBox="0 0 700 260"
+                        role="img"
+                        aria-label="Decorative global threat activity visualization">
+
+
+                        <defs>
+
+                            <linearGradient
+                                id="globeLineGradient"
+                                x1="0%"
+                                y1="0%"
+                                x2="100%"
+                                y2="100%">
+
+                                <stop
+                                    offset="0%"
+                                    stop-color="#00f0ff">
+
+                                </stop>
+
+                                <stop
+                                    offset="50%"
+                                    stop-color="#2583ff">
+
+                                </stop>
+
+                                <stop
+                                    offset="100%"
+                                    stop-color="#8c52ff">
+
+                                </stop>
+
+                            </linearGradient>
+
+
+                            <radialGradient
+                                id="threatPulseGradient"
+                                cx="50%"
+                                cy="50%"
+                                r="50%">
+
+                                <stop
+                                    offset="0%"
+                                    stop-color="#ff3b6b"
+                                    stop-opacity="1">
+
+                                </stop>
+
+                                <stop
+                                    offset="100%"
+                                    stop-color="#ff3b6b"
+                                    stop-opacity="0">
+
+                                </stop>
+
+                            </radialGradient>
+
+
+                            <filter id="glow">
+
+                                <feGaussianBlur
+                                    stdDeviation="3"
+                                    result="coloredBlur">
+
+                                </feGaussianBlur>
+
+                                <feMerge>
+
+                                    <feMergeNode in="coloredBlur"></feMergeNode>
+
+                                    <feMergeNode in="SourceGraphic"></feMergeNode>
+
+                                </feMerge>
+
+                            </filter>
+
+                        </defs>
+
+
+                        <!-- Globe outline -->
+
+                        <ellipse
+                            cx="350"
+                            cy="130"
+                            rx="245"
+                            ry="106"
+                            class="globe-outline">
+                        </ellipse>
+
+
+                        <!-- Longitude lines -->
+
+                        <ellipse
+                            cx="350"
+                            cy="130"
+                            rx="170"
+                            ry="106"
+                            class="globe-line">
+                        </ellipse>
+
+                        <ellipse
+                            cx="350"
+                            cy="130"
+                            rx="90"
+                            ry="106"
+                            class="globe-line">
+                        </ellipse>
+
+                        <line
+                            x1="350"
+                            y1="24"
+                            x2="350"
+                            y2="236"
+                            class="globe-line">
+                        </line>
+
+
+                        <!-- Latitude lines -->
+
+                        <ellipse
+                            cx="350"
+                            cy="130"
+                            rx="238"
+                            ry="35"
+                            class="globe-line">
+                        </ellipse>
+
+                        <ellipse
+                            cx="350"
+                            cy="130"
+                            rx="220"
+                            ry="70"
+                            class="globe-line">
+                        </ellipse>
+
+
+                        <!-- Data connection paths -->
+
+                        <path
+                            d="M165 150 Q290 30 425 115"
+                            class="threat-connection">
+                        </path>
+
+                        <path
+                            d="M425 115 Q520 85 590 150"
+                            class="threat-connection threat-connection--delayed">
+                        </path>
+
+                        <path
+                            d="M230 92 Q365 215 520 105"
+                            class="threat-connection threat-connection--reverse">
+                        </path>
+
+                        <path
+                            d="M120 130 Q330 170 620 95"
+                            class="threat-connection threat-connection--wide">
+                        </path>
+
+
+                        <!-- Security nodes -->
+
+                        <g class="map-node map-node--secure">
+
+                            <circle
+                                cx="165"
+                                cy="150"
+                                r="5">
+                            </circle>
+
+                            <circle
+                                cx="165"
+                                cy="150"
+                                r="13"
+                                class="map-node__pulse">
+                            </circle>
+
+                        </g>
+
+
+                        <g class="map-node map-node--warning">
+
+                            <circle
+                                cx="230"
+                                cy="92"
+                                r="5">
+                            </circle>
+
+                            <circle
+                                cx="230"
+                                cy="92"
+                                r="15"
+                                class="map-node__pulse">
+                            </circle>
+
+                        </g>
+
+
+                        <g class="map-node map-node--secure">
+
+                            <circle
+                                cx="425"
+                                cy="115"
+                                r="5">
+                            </circle>
+
+                            <circle
+                                cx="425"
+                                cy="115"
+                                r="13"
+                                class="map-node__pulse">
+                            </circle>
+
+                        </g>
+
+
+                        <g class="map-node map-node--critical">
+
+                            <circle
+                                cx="520"
+                                cy="105"
+                                r="6">
+                            </circle>
+
+                            <circle
+                                cx="520"
+                                cy="105"
+                                r="18"
+                                class="map-node__pulse">
+                            </circle>
+
+                        </g>
+
+
+                        <g class="map-node map-node--secure">
+
+                            <circle
+                                cx="590"
+                                cy="150"
+                                r="5">
+                            </circle>
+
+                            <circle
+                                cx="590"
+                                cy="150"
+                                r="13"
+                                class="map-node__pulse">
+                            </circle>
+
+                        </g>
+
+
+                        <!-- Moving data packets -->
+
+                        <circle
+                            r="4"
+                            class="data-packet data-packet--one">
+
+                            <animateMotion
+                                dur="4s"
+                                repeatCount="indefinite"
+                                path="M165 150 Q290 30 425 115">
+                            </animateMotion>
+
+                        </circle>
+
+
+                        <circle
+                            r="4"
+                            class="data-packet data-packet--two">
+
+                            <animateMotion
+                                dur="5s"
+                                repeatCount="indefinite"
+                                path="M425 115 Q520 85 590 150">
+                            </animateMotion>
+
+                        </circle>
+
+
+                        <circle
+                            r="4"
+                            class="data-packet data-packet--three">
+
+                            <animateMotion
+                                dur="6s"
+                                repeatCount="indefinite"
+                                path="M230 92 Q365 215 520 105">
+                            </animateMotion>
+
+                        </circle>
+
+                    </svg>
+
+
+                    <!-- Threat map labels -->
+
+                    <span class="map-label map-label--one">
+                        NODE-IND-01
+                    </span>
+
+                    <span class="map-label map-label--two">
+                        NODE-EU-08
+                    </span>
+
+                    <span class="map-label map-label--three">
+                        NODE-US-04
+                    </span>
+
+                </div>
+
+            </div>
+
+
+            <!-- Platform statistics -->
+
+            <div class="security-statistics">
+
+
+                <article class="security-stat">
+
+                    <div class="security-stat__icon">
+
+                        <i class="fa-solid fa-file-shield"></i>
+
+                    </div>
+
+                    <div class="security-stat__content">
+
+                        <span class="security-stat__label">
+                            Files Analysed
+                        </span>
+
+                        <strong
+                            class="security-stat__value"
+                            data-counter="24869">
+
+                            24,869
+
+                        </strong>
+
+                    </div>
+
+                    <span class="security-stat__trend">
+
+                        <i class="fa-solid fa-arrow-trend-up"></i>
+
+                        AI SCAN
+
+                    </span>
+
+                </article>
+
+
+                <article class="security-stat">
+
+                    <div class="security-stat__icon">
+
+                        <i class="fa-solid fa-shield-virus"></i>
+
+                    </div>
+
+                    <div class="security-stat__content">
+
+                        <span class="security-stat__label">
+                            Threats Detected
+                        </span>
+
+                        <strong
+                            class="security-stat__value"
+                            data-counter="1264">
+
+                            1,264
+
+                        </strong>
+
+                    </div>
+
+                    <span class="security-stat__trend">
+
+                        <i class="fa-solid fa-bolt"></i>
+
+                        REAL TIME
+
+                    </span>
+
+                </article>
+
+
+                <article class="security-stat">
+
+                    <div class="security-stat__icon">
+
+                        <i class="fa-solid fa-microchip"></i>
+
+                    </div>
+
+                    <div class="security-stat__content">
+
+                        <span class="security-stat__label">
+                            AI Engine
+                        </span>
+
+                        <strong class="security-stat__value">
+
+                            XGBoost
+
+                        </strong>
+
+                    </div>
+
+                    <span class="security-stat__trend">
+
+                        <i class="fa-solid fa-circle-check"></i>
+
+                        ACTIVE
+
+                    </span>
+
+                </article>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             RIGHT: LOGIN ACCESS PANEL
+        ================================================== -->
+
+        <section
+            class="access-panel"
+            aria-labelledby="loginTitle">
+
+
+            <div class="access-panel__glow"></div>
+
+
+            <div class="access-card">
+
+
+                <!-- Decorative cyber-card corners -->
+
+                <span class="cyber-corner cyber-corner--top-left"></span>
+
+                <span class="cyber-corner cyber-corner--top-right"></span>
+
+                <span class="cyber-corner cyber-corner--bottom-left"></span>
+
+                <span class="cyber-corner cyber-corner--bottom-right"></span>
+
+
+                <!-- Moving card light -->
+
+                <div
+                    class="access-card__scanner"
+                    aria-hidden="true">
+                </div>
+
+
+                <!-- Login heading -->
+
+                <div class="access-card__header">
+
+
+                    <div class="access-identity">
+
+                        <span class="access-identity__icon">
+
+                            <i class="fa-solid fa-fingerprint"></i>
+
+                        </span>
+
+                        <div>
+
+                            <span class="access-identity__eyebrow">
+                                AUTHENTICATION REQUIRED
+                            </span>
+
+                            <span class="access-identity__code">
+                                ACCESS GATEWAY // SOC-01
+                            </span>
+
+                        </div>
+
+                    </div>
+
+
+                    <h2 id="loginTitle">
+
+                        Welcome Back
+
+                    </h2>
+
+
+                    <p>
+
+                        Enter your authorized credentials to access the
+                        AI Threat Detection command centre.
+
+                    </p>
+
+                </div>
+
+
+                <!-- =================================================
+                     FLASK FLASH MESSAGES
+                ================================================== -->
+
+                {% with messages = get_flashed_messages(with_categories=true) %}
+
+                    {% if messages %}
+
+                        <div
+                            class="system-alerts"
+                            role="alert"
+                            aria-live="assertive">
+
+                            {% for category, message in messages %}
+
+                                <div
+                                    class="system-alert system-alert--{{ category|e }}">
+
+                                    <span class="system-alert__icon">
+
+                                        {% if category == 'success' %}
+
+                                            <i class="fa-solid fa-circle-check"></i>
+
+                                        {% elif category == 'warning' %}
+
+                                            <i class="fa-solid fa-triangle-exclamation"></i>
+
+                                        {% else %}
+
+                                            <i class="fa-solid fa-shield-exclamation"></i>
+
+                                        {% endif %}
+
+                                    </span>
+
+                                    <div class="system-alert__content">
+
+                                        <strong>
+
+                                            {% if category == 'success' %}
+
+                                                Access Confirmed
+
+                                            {% elif category == 'warning' %}
+
+                                                Security Notice
+
+                                            {% else %}
+
+                                                Authentication Failed
+
+                                            {% endif %}
+
+                                        </strong>
+
+                                        <span>
+                                            {{ message }}
+                                        </span>
+
+                                    </div>
+
+                                    <button
+                                        type="button"
+                                        class="system-alert__close"
+                                        aria-label="Dismiss notification">
+
+                                        <i class="fa-solid fa-xmark"></i>
+
+                                    </button>
+
+                                </div>
+
+                            {% endfor %}
+
+                        </div>
+
+                    {% endif %}
+
+                {% endwith %}
+
+
+                <!-- =================================================
+                     LOGIN FORM
+                ================================================== -->
+
+                <form
+                    method="POST"
+                    class="login-form"
+                    id="loginForm"
+                    novalidate>
+
+
+                    <!-- Optional Flask-WTF CSRF support -->
+
+                    {% if form is defined %}
+
+                        {{ form.hidden_tag() }}
+
+                    {% endif %}
+
+
+                    <!-- Username -->
+
+                    <div
+                        class="form-field"
+                        id="usernameField">
+
+
+                        <label
+                            for="username"
+                            class="form-field__label">
+
+                            Operator Identity
+
+                        </label>
+
+
+                        <div class="form-field__control">
+
+
+                            <span class="form-field__icon">
+
+                                <i class="fa-solid fa-user-shield"></i>
+
+                            </span>
+
+
+                            <input
+                                type="text"
+                                id="username"
+                                name="username"
+                                class="form-field__input"
+                                placeholder="Enter username"
+                                autocomplete="username"
+                                autocapitalize="none"
+                                spellcheck="false"
+                                maxlength="100"
+                                required
+                                aria-describedby="usernameHint usernameError">
+
+
+                            <span
+                                class="form-field__status"
+                                aria-hidden="true">
+
+                                <i class="fa-solid fa-circle-check"></i>
+
+                            </span>
+
+
+                            <span
+                                class="form-field__focus-line"
+                                aria-hidden="true">
+                            </span>
+
+                        </div>
+
+
+                        <div class="form-field__information">
+
+                            <span
+                                class="form-field__hint"
+                                id="usernameHint">
+
+                                Use your registered SOC account
+
+                            </span>
+
+                            <span
+                                class="form-field__error"
+                                id="usernameError"
+                                aria-live="polite">
+                            </span>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- Password -->
+
+                    <div
+                        class="form-field"
+                        id="passwordField">
+
+
+                        <label
+                            for="password"
+                            class="form-field__label">
+
+                            Security Key
+
+                        </label>
+
+
+                        <div class="form-field__control">
+
+
+                            <span class="form-field__icon">
+
+                                <i class="fa-solid fa-key"></i>
+
+                            </span>
+
+
+                            <input
+                                type="password"
+                                id="password"
+                                name="password"
+                                class="form-field__input form-field__input--password"
+                                placeholder="Enter password"
+                                autocomplete="current-password"
+                                maxlength="128"
+                                required
+                                aria-describedby="passwordHint passwordError">
+
+
+                            <button
+                                type="button"
+                                class="password-toggle"
+                                id="passwordToggle"
+                                aria-label="Show password"
+                                aria-controls="password"
+                                aria-pressed="false">
+
+                                <i
+                                    class="fa-solid fa-eye"
+                                    aria-hidden="true">
+                                </i>
+
+                            </button>
+
+
+                            <span
+                                class="form-field__focus-line"
+                                aria-hidden="true">
+                            </span>
+
+                        </div>
+
+
+                        <div class="form-field__information">
+
+                            <span
+                                class="form-field__hint"
+                                id="passwordHint">
+
+                                Credential data remains protected
+
+                            </span>
+
+                            <span
+                                class="form-field__error"
+                                id="passwordError"
+                                aria-live="polite">
+                            </span>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- Remember and password assistance -->
+
+                    <div class="form-options">
+
+
+                        <label class="secure-checkbox">
+
+                            <input
+                                type="checkbox"
+                                name="remember"
+                                id="rememberDevice"
+                                value="1">
+
+                            <span
+                                class="secure-checkbox__box"
+                                aria-hidden="true">
+
+                                <i class="fa-solid fa-check"></i>
+
+                            </span>
+
+                            <span class="secure-checkbox__label">
+
+                                Remember this device
+
+                            </span>
+
+                        </label>
+
+
+                        <button
+                            type="button"
+                            class="recovery-link"
+                            id="openRecovery">
+
+                            Forgot credentials?
+
+                        </button>
+
+                    </div>
+
+
+                    <!-- Login button -->
+
+                    <button
+                        type="submit"
+                        class="login-button"
+                        id="loginButton">
+
+
+                        <span
+                            class="login-button__background"
+                            aria-hidden="true">
+                        </span>
+
+
+                        <span class="login-button__content">
+
+                            <span class="login-button__icon">
+
+                                <i class="fa-solid fa-right-to-bracket"></i>
+
+                            </span>
+
+                            <span class="login-button__text">
+                                Initialize Secure Login
+                            </span>
+
+                            <span class="login-button__arrow">
+
+                                <i class="fa-solid fa-arrow-right"></i>
+
+                            </span>
+
+                        </span>
+
+
+                        <span
+                            class="login-button__loader"
+                            aria-hidden="true">
+
+                            <span></span>
+
+                            <span></span>
+
+                            <span></span>
+
+                        </span>
+
+                    </button>
+
+
+                    <!-- Authentication progress -->
+
+                    <div
+                        class="authentication-progress"
+                        id="authenticationProgress"
+                        aria-hidden="true">
+
+                        <div class="authentication-progress__header">
+
+                            <span id="authenticationMessage">
+                                Verifying security credentials
+                            </span>
+
+                            <span id="authenticationPercentage">
+                                0%
+                            </span>
+
+                        </div>
+
+                        <div class="authentication-progress__track">
+
+                            <span
+                                class="authentication-progress__bar"
+                                id="authenticationBar">
+                            </span>
+
+                        </div>
+
+                    </div>
+
+                </form>
+
+
+                <!-- Login security status -->
+
+                <div class="security-assurance">
+
+
+                    <div class="security-assurance__item">
+
+                        <span class="security-assurance__icon">
+
+                            <i class="fa-solid fa-lock"></i>
+
+                        </span>
+
+                        <span>
+                            Protected Access
+                        </span>
+
+                    </div>
+
+
+                    <div class="security-assurance__divider"></div>
+
+
+                    <div class="security-assurance__item">
+
+                        <span class="security-assurance__icon">
+
+                            <i class="fa-solid fa-user-secret"></i>
+
+                        </span>
+
+                        <span>
+                            Identity Verification
+                        </span>
+
+                    </div>
+
+
+                    <div class="security-assurance__divider"></div>
+
+
+                    <div class="security-assurance__item">
+
+                        <span class="security-assurance__icon">
+
+                            <i class="fa-solid fa-shield"></i>
+
+                        </span>
+
+                        <span>
+                            Secure Session
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+                <!-- Alternative authentication visual -->
+
+                <div class="authentication-divider">
+
+                    <span></span>
+
+                    <strong>
+                        ADVANCED ACCESS
+                    </strong>
+
+                    <span></span>
+
+                </div>
+
+
+                <button
+                    type="button"
+                    class="biometric-button"
+                    id="biometricButton">
+
+
+                    <span class="biometric-button__scanner">
+
+                        <span class="fingerprint">
+
+                            <i class="fa-solid fa-fingerprint"></i>
+
+                        </span>
+
+                        <span class="fingerprint-scan-line"></span>
+
+                    </span>
+
+
+                    <span class="biometric-button__content">
+
+                        <strong>
+                            Biometric Security Scan
+                        </strong>
+
+                        <small>
+                            Interface demonstration
+                        </small>
+
+                    </span>
+
+
+                    <span class="biometric-button__status">
+
+                        <i class="fa-solid fa-wave-square"></i>
+
+                    </span>
+
+                </button>
+
+
+                <!-- Signup -->
+
+                <div class="signup-section">
+
+                    <p>
+
+                        Not registered in the security network?
+
+                        <a
+                            href="{{ url_for('signup') }}"
+                            class="signup-link">
+
+                            Create an account
+
+                            <i class="fa-solid fa-arrow-up-right-from-square"></i>
+
+                        </a>
+
+                    </p>
+
+                </div>
+
+
+                <!-- Card footer -->
+
+                <div class="access-card__footer">
+
+
+                    <div class="access-card__version">
+
+                        <span>
+                            AI THREAT DETECTION
+                        </span>
+
+                        <strong>
+                            VERSION 2.0
+                        </strong>
+
+                    </div>
+
+
+                    <div
+                        class="access-card__session"
+                        id="sessionIdentifier">
+
+                        SESSION // GENERATING
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+
+    <!-- =====================================================
+         BOTTOM SYSTEM FOOTER
+    ====================================================== -->
+
+    <footer class="global-footer">
+
+
+        <div class="global-footer__left">
+
+            <span class="footer-status">
+
+                <span class="footer-status__pulse"></span>
+
+                SYSTEM OPERATIONAL
+
+            </span>
+
+            <span class="footer-separator">
+                /
+            </span>
+
+            <span>
+                AI Threat Detection Security Platform
+            </span>
+
+        </div>
+
+
+        <div class="global-footer__right">
+
+            <span>
+                Authorized access only
+            </span>
+
+            <span class="footer-separator">
+                /
+            </span>
+
+            <span id="currentYear">
+                2026
+            </span>
+
+        </div>
+
+    </footer>
+
+
+    <!-- =====================================================
+         PASSWORD RECOVERY MODAL
+         JavaScript will control opening and closing
+    ====================================================== -->
+
+    <div
+        class="modal-system"
+        id="recoveryModal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="recoveryTitle"
+        aria-hidden="true">
+
+
+        <div
+            class="modal-system__backdrop"
+            data-close-modal>
+        </div>
+
+
+        <div class="modal-system__window">
+
+
+            <span class="cyber-corner cyber-corner--top-left"></span>
+
+            <span class="cyber-corner cyber-corner--top-right"></span>
+
+            <span class="cyber-corner cyber-corner--bottom-left"></span>
+
+            <span class="cyber-corner cyber-corner--bottom-right"></span>
+
+
+            <button
+                type="button"
+                class="modal-system__close"
+                id="closeRecovery"
+                aria-label="Close password recovery window">
+
+                <i class="fa-solid fa-xmark"></i>
+
+            </button>
+
+
+            <div class="modal-system__icon">
+
+                <i class="fa-solid fa-user-lock"></i>
+
+            </div>
+
+
+            <span class="panel-eyebrow">
+                ACCOUNT RECOVERY
+            </span>
+
+
+            <h2 id="recoveryTitle">
+
+                Recover Security Access
 
             </h2>
 
+
             <p>
 
-                Sign in to continue
+                Contact your system administrator or use the account recovery
+                service configured for this platform.
 
             </p>
 
-            {% with messages=get_flashed_messages() %}
 
-            {% if messages %}
+            <button
+                type="button"
+                class="modal-action-button"
+                id="acknowledgeRecovery">
 
-            <div class="alert">
+                <i class="fa-solid fa-circle-check"></i>
 
-                {{ messages[0] }}
+                Acknowledge
 
-            </div>
-
-            {% endif %}
-
-            {% endwith %}
-
-            <form method="POST">
-
-                <div class="input-group">
-
-                    <i class="fa-solid fa-user"></i>
-
-                    <input
-                        type="text"
-                        name="username"
-                        placeholder="Username"
-                        required>
-
-                </div>
-
-                <div class="input-group">
-
-                    <i class="fa-solid fa-lock"></i>
-
-                    <input
-                        type="password"
-                        name="password"
-                        placeholder="Password"
-                        required>
-
-                </div>
-
-                <button
-                    type="submit"
-                    class="login-btn">
-
-                    Login
-
-                </button>
-            <p>
-    Don't have an account?
-    <a href="{{ url_for('signup') }}">
-        Sign Up
-    </a>
-</p>
-            </form>
-
-            <div class="bottom-text">
-
-                AI Threat Detection System
-
-                <br>
-
-                Version 2.0
-
-            </div>
+            </button>
 
         </div>
 
     </div>
 
-</div>
-<script>
-const canvas = document.getElementById("cyberCanvas");
-const ctx = canvas.getContext("2d");
 
-let particles = [];
-const mouse = {
-    x: null,
-    y: null
-};
+    <!-- =====================================================
+         BIOMETRIC DEMONSTRATION OVERLAY
+    ====================================================== -->
 
-function resizeCanvas(){
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-}
+    <div
+        class="biometric-overlay"
+        id="biometricOverlay"
+        aria-hidden="true">
 
-window.addEventListener("resize", resizeCanvas);
-resizeCanvas();
 
-window.addEventListener("mousemove", function(event){
-    mouse.x = event.clientX;
-    mouse.y = event.clientY;
-});
+        <div class="biometric-interface">
 
-window.addEventListener("mouseleave", function(){
-    mouse.x = null;
-    mouse.y = null;
-});
 
-class Particle{
-    constructor(){
-        this.x = Math.random() * canvas.width;
-        this.y = Math.random() * canvas.height;
-        this.size = Math.random() * 2 + 1;
-        this.speedX = Math.random() * 0.6 - 0.3;
-        this.speedY = Math.random() * 0.6 - 0.3;
-    }
+            <button
+                type="button"
+                class="biometric-interface__close"
+                id="closeBiometric"
+                aria-label="Close biometric scanner">
 
-    update(){
-        this.x += this.speedX;
-        this.y += this.speedY;
+                <i class="fa-solid fa-xmark"></i>
 
-        if(this.x < 0 || this.x > canvas.width){
-            this.speedX *= -1;
-        }
+            </button>
 
-        if(this.y < 0 || this.y > canvas.height){
-            this.speedY *= -1;
-        }
 
-        if(mouse.x !== null && mouse.y !== null){
-            const dx = mouse.x - this.x;
-            const dy = mouse.y - this.y;
-            const distance = Math.sqrt(dx * dx + dy * dy);
+            <div class="biometric-interface__rings">
 
-            if(distance < 130){
-                this.x -= dx * 0.008;
-                this.y -= dy * 0.008;
-            }
-        }
-    }
+                <span></span>
 
-    draw(){
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-        ctx.fillStyle = "rgba(0, 229, 255, 0.8)";
-        ctx.shadowBlur = 12;
-        ctx.shadowColor = "#00e5ff";
-        ctx.fill();
-        ctx.shadowBlur = 0;
-    }
-}
+                <span></span>
 
-function createParticles(){
-    particles = [];
+                <span></span>
 
-    const numberOfParticles = Math.min(
-        100,
-        Math.floor((canvas.width * canvas.height) / 14000)
-    );
+            </div>
 
-    for(let i = 0; i < numberOfParticles; i++){
-        particles.push(new Particle());
-    }
-}
 
-function connectParticles(){
-    for(let a = 0; a < particles.length; a++){
-        for(let b = a + 1; b < particles.length; b++){
+            <div class="biometric-interface__fingerprint">
 
-            const dx = particles[a].x - particles[b].x;
-            const dy = particles[a].y - particles[b].y;
-            const distance = Math.sqrt(dx * dx + dy * dy);
+                <i class="fa-solid fa-fingerprint"></i>
 
-            if(distance < 120){
-                const opacity = 1 - distance / 120;
+                <span class="biometric-interface__scan"></span>
 
-                ctx.beginPath();
-                ctx.strokeStyle = `rgba(0, 174, 255, ${opacity * 0.25})`;
-                ctx.lineWidth = 1;
-                ctx.moveTo(particles[a].x, particles[a].y);
-                ctx.lineTo(particles[b].x, particles[b].y);
-                ctx.stroke();
-            }
-        }
-    }
-}
+            </div>
 
-function animate(){
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    particles.forEach(function(particle){
-        particle.update();
-        particle.draw();
-    });
+            <h2>
+                BIOMETRIC IDENTITY SCAN
+            </h2>
 
-    connectParticles();
-    requestAnimationFrame(animate);
-}
 
-createParticles();
-animate();
+            <p id="biometricStatus">
 
-window.addEventListener("resize", createParticles);
+                Place authorized identity on the scanner
+
+            </p>
+
+
+            <div class="biometric-interface__progress">
+
+                <span id="biometricProgress"></span>
+
+            </div>
+
+
+            <strong id="biometricPercentage">
+                0%
+            </strong>
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         TOAST NOTIFICATION REGION
+    ====================================================== -->
+
+    <div
+        class="toast-region"
+        id="toastRegion"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true">
+    </div>
+
+
+    <!-- =====================================================
+         SCREEN-READER LIVE STATUS
+    ====================================================== -->
+
+    <div
+        class="sr-only"
+        id="accessibilityStatus"
+        role="status"
+        aria-live="polite">
+    </div>
+
+
+    <!-- =====================================================
+         NO-JAVASCRIPT MESSAGE
+    ====================================================== -->
+
+    <noscript>
+
+        <div class="noscript-warning">
+
+            <i class="fa-solid fa-triangle-exclamation"></i>
+
+            JavaScript is disabled. Standard login will continue to work,
+            but advanced visual effects and interface controls will be unavailable.
+
+        </div>
+
+    </noscript>
+
+
+    <!-- =====================================================
+         LOGIN PAGE JAVASCRIPT
+         Uncomment after creating static/js/login.js
+    ====================================================== -->
+
+    <!--
+    <script
+        src="{{ url_for('static', filename='js/login.js') }}"
+        defer>
+    </script>
+    -->
+<script
+    src="{{ url_for('static', filename='js/login.js') }}"
+    defer>
 </script>
+
 </body>
 
 </html>

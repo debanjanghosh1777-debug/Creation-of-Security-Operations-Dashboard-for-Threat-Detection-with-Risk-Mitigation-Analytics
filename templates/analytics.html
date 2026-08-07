@@ -2,103 +2,1991 @@
 
 {% block content %}
 
-<div class="container mt-4">
+{# =============================================================================
+   AI THREAT DETECTION SYSTEM
+   FORENSIC DECISION INTELLIGENCE WORKSPACE
 
-    <h2 class="text-white mb-4">
-        📊 Threat Analytics
-    </h2>
+   File:
+   templates/analytics.html
 
-    <div class="card bg-dark shadow-lg p-4 text-center">
+   Purpose:
+   This page is deliberately different from the main Dashboard.
 
-        <div style="width:420px; height:420px; margin:auto;">
-            <canvas id="myChart"></canvas>
+   Dashboard:
+   - Real-time operational overview
+   - Global landscape
+   - Daily activity chart
+   - Threat distribution
+   - Risk distribution
+
+   Analytics:
+   - Derived threat ratios
+   - Exposure funnel
+   - Investigation queue
+   - Triage intelligence
+   - Response-planning simulator
+   - Decision recommendations
+   - Data lineage and exports
+
+   Existing backend contract preserved:
+   - stats
+   - score
+   - analytics
+   - dashboard
+   - upload
+   - history
+   - export_csv
+   - export_pdf
+   - current_user
+
+   Isolation:
+   - Every page-specific class begins with anlx-
+   - No upload, prediction, history, dashboard, user-management, security-tools,
+     threat-intelligence, database-write, or chatbot function is changed here.
+   ============================================================================= #}
+
+<link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='css/analytics.css') }}"
+>
+
+{# -----------------------------------------------------------------------------
+   SAFE SERVER-DATA NORMALIZATION
+   ----------------------------------------------------------------------------- #}
+
+{% set analytics_stats = stats|default({}, true) %}
+
+{% set total_scans =
+    analytics_stats.total|default(0, true)|int
+%}
+
+{% set safe_files =
+    analytics_stats.safe|default(0, true)|int
+%}
+
+{% set malicious_files =
+    analytics_stats.malicious|default(0, true)|int
+%}
+
+{% set critical_threats =
+    analytics_stats.critical|default(0, true)|int
+%}
+
+{% set security_score_value =
+    score|default(0, true)|float
+%}
+
+{% set last_scan_value =
+    analytics_stats.last_scan|default('No scans recorded', true)
+%}
+
+{% set noncritical_threats =
+    malicious_files - critical_threats
+    if malicious_files > critical_threats
+    else 0
+%}
+
+{% set safe_percentage =
+    ((safe_files / total_scans) * 100)|round(1)
+    if total_scans > 0
+    else 0
+%}
+
+{% set threat_percentage =
+    ((malicious_files / total_scans) * 100)|round(1)
+    if total_scans > 0
+    else 0
+%}
+
+{% set critical_percentage =
+    ((critical_threats / total_scans) * 100)|round(1)
+    if total_scans > 0
+    else 0
+%}
+
+{% set noncritical_percentage =
+    ((noncritical_threats / total_scans) * 100)|round(1)
+    if total_scans > 0
+    else 0
+%}
+
+{% set critical_share_of_threats =
+    ((critical_threats / malicious_files) * 100)|round(1)
+    if malicious_files > 0
+    else 0
+%}
+
+{% set safe_to_threat_ratio =
+    (safe_files / malicious_files)|round(2)
+    if malicious_files > 0
+    else safe_files
+%}
+
+{% set operator_name =
+    current_user.id
+    if current_user.is_authenticated
+    else 'Operator'
+%}
+
+{# -----------------------------------------------------------------------------
+   INTERPRETATION BANDS
+   ----------------------------------------------------------------------------- #}
+
+{% if security_score_value >= 85 %}
+    {% set posture_label = 'Strong' %}
+    {% set posture_tone = 'strong' %}
+    {% set posture_summary =
+        'Security health is strong across the currently stored scan portfolio.'
+    %}
+{% elif security_score_value >= 70 %}
+    {% set posture_label = 'Stable' %}
+    {% set posture_tone = 'stable' %}
+    {% set posture_summary =
+        'Security health is stable, with a manageable investigation workload.'
+    %}
+{% elif security_score_value >= 50 %}
+    {% set posture_label = 'Attention Required' %}
+    {% set posture_tone = 'attention' %}
+    {% set posture_summary =
+        'Security health requires attention and closer review of malicious records.'
+    %}
+{% else %}
+    {% set posture_label = 'Elevated Risk' %}
+    {% set posture_tone = 'elevated' %}
+    {% set posture_summary =
+        'Security health is weak or there is not yet enough clean-scan evidence.'
+    %}
+{% endif %}
+
+{% if threat_percentage == 0 %}
+    {% set exposure_label = 'No Recorded Exposure' %}
+    {% set exposure_tone = 'clear' %}
+{% elif threat_percentage <= 10 %}
+    {% set exposure_label = 'Low Exposure' %}
+    {% set exposure_tone = 'low' %}
+{% elif threat_percentage <= 25 %}
+    {% set exposure_label = 'Guarded Exposure' %}
+    {% set exposure_tone = 'guarded' %}
+{% elif threat_percentage <= 50 %}
+    {% set exposure_label = 'Elevated Exposure' %}
+    {% set exposure_tone = 'elevated' %}
+{% else %}
+    {% set exposure_label = 'Severe Exposure' %}
+    {% set exposure_tone = 'severe' %}
+{% endif %}
+
+{% if critical_threats > 0 %}
+    {% set urgency_label = 'Immediate Review' %}
+    {% set urgency_tone = 'critical' %}
+    {% set next_action =
+        'Open Scan History and inspect every critical record before reviewing lower-priority detections.'
+    %}
+{% elif malicious_files > 0 %}
+    {% set urgency_label = 'Threat Review Required' %}
+    {% set urgency_tone = 'warning' %}
+    {% set next_action =
+        'Review malicious detections in Scan History and validate their stored recommendations.'
+    %}
+{% elif total_scans > 0 %}
+    {% set urgency_label = 'Continue Monitoring' %}
+    {% set urgency_tone = 'safe' %}
+    {% set next_action =
+        'Continue routine scanning and monitor for changes in the threat rate.'
+    %}
+{% else %}
+    {% set urgency_label = 'Build Evidence Base' %}
+    {% set urgency_tone = 'neutral' %}
+    {% set next_action =
+        'Run the first file analysis to create a usable evidence base.'
+    %}
+{% endif %}
+
+{% if total_scans < 5 %}
+    {% set evidence_label = 'Limited Evidence' %}
+    {% set evidence_tone = 'limited' %}
+    {% set evidence_summary =
+        'The current sample is too small for reliable portfolio-level interpretation.'
+    %}
+{% elif total_scans < 20 %}
+    {% set evidence_label = 'Emerging Evidence' %}
+    {% set evidence_tone = 'emerging' %}
+    {% set evidence_summary =
+        'The scan portfolio is developing, but results may still change quickly.'
+    %}
+{% elif total_scans < 100 %}
+    {% set evidence_label = 'Established Evidence' %}
+    {% set evidence_tone = 'established' %}
+    {% set evidence_summary =
+        'The scan portfolio is large enough to support more stable comparisons.'
+    %}
+{% else %}
+    {% set evidence_label = 'Broad Evidence Base' %}
+    {% set evidence_tone = 'broad' %}
+    {% set evidence_summary =
+        'The scan portfolio provides broad coverage for aggregate analysis.'
+    %}
+{% endif %}
+
+<a
+    class="anlx-skip-link"
+    href="#analyticsMainContent"
+>
+    Skip to forensic analytics
+</a>
+
+<main
+    class="anlx-page"
+    id="analyticsPage"
+    data-total-scans="{{ total_scans }}"
+    data-safe-files="{{ safe_files }}"
+    data-malicious-files="{{ malicious_files }}"
+    data-critical-threats="{{ critical_threats }}"
+    data-noncritical-threats="{{ noncritical_threats }}"
+    data-security-score="{{ security_score_value }}"
+    data-safe-percentage="{{ safe_percentage }}"
+    data-threat-percentage="{{ threat_percentage }}"
+    data-critical-percentage="{{ critical_percentage }}"
+    data-critical-share="{{ critical_share_of_threats }}"
+    data-operator="{{ operator_name|e }}"
+>
+
+    <!-- =====================================================================
+         AMBIENT FORENSIC LAYER
+         Future analytics.js will activate this page-only visual layer.
+         ===================================================================== -->
+
+    <div
+        class="anlx-ambient"
+        aria-hidden="true"
+    >
+        <canvas
+            class="anlx-ambient__mesh"
+            id="analyticsMeshCanvas"
+        ></canvas>
+
+        <canvas
+            class="anlx-ambient__signals"
+            id="analyticsSignalCanvas"
+        ></canvas>
+
+        <div class="anlx-ambient__grid"></div>
+        <div class="anlx-ambient__noise"></div>
+
+        <div
+            class="anlx-ambient__orb anlx-ambient__orb--cyan"
+        ></div>
+
+        <div
+            class="anlx-ambient__orb anlx-ambient__orb--teal"
+        ></div>
+
+        <div
+            class="anlx-ambient__orb anlx-ambient__orb--violet"
+        ></div>
+
+        <div
+            class="anlx-cursor-light"
+            id="analyticsCursorLight"
+        ></div>
+    </div>
+
+    <div
+        class="anlx-sr-only"
+        id="analyticsAccessibilityStatus"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+    ></div>
+
+    <!-- =====================================================================
+         SERVER NOTIFICATIONS
+         ===================================================================== -->
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <section
+                class="anlx-alert-stack"
+                aria-label="Analytics notifications"
+            >
+                {% for category, message in messages %}
+                    <article
+                        class="anlx-alert anlx-alert--{{ category|default('info', true)|e }}"
+                        data-analytics-alert
+                    >
+                        <span
+                            class="anlx-alert__icon"
+                            aria-hidden="true"
+                        >
+                            <i class="fa-solid fa-circle-info"></i>
+                        </span>
+
+                        <div class="anlx-alert__content">
+                            <strong>Analytics notification</strong>
+                            <p>{{ message }}</p>
+                        </div>
+
+                        <button
+                            type="button"
+                            aria-label="Dismiss notification"
+                            data-dismiss-analytics-alert
+                        >
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </article>
+                {% endfor %}
+            </section>
+        {% endif %}
+    {% endwith %}
+
+    <!-- =====================================================================
+         COMMAND HEADER
+         ===================================================================== -->
+
+    <header class="anlx-command-header">
+
+        <div class="anlx-command-header__identity">
+            <span
+                class="anlx-command-header__mark"
+                aria-hidden="true"
+            >
+                <i class="fa-solid fa-magnifying-glass-chart"></i>
+            </span>
+
+            <div>
+                <div class="anlx-command-header__eyebrow">
+                    <span class="anlx-live-dot"></span>
+                    FORENSIC DECISION INTELLIGENCE
+                </div>
+
+                <div class="anlx-command-header__title-row">
+                    <h1>Threat Analytics Lab</h1>
+
+                    <span class="anlx-command-header__status">
+                        <i class="fa-solid fa-database"></i>
+                        Stored evidence synchronized
+                    </span>
+                </div>
+
+                <p>
+                    Investigate exposure, prioritize review work and convert
+                    stored scan outcomes into actionable security decisions.
+                </p>
+            </div>
         </div>
+
+        <div class="anlx-command-header__controls">
+
+            <div
+                class="anlx-command-clock"
+                aria-label="Local analytics time"
+            >
+                <span>ANALYST LOCAL TIME</span>
+                <strong id="analyticsLocalClock">--:--:--</strong>
+                <small id="analyticsLocalDate">Loading date</small>
+            </div>
+
+            <a
+                class="anlx-icon-action"
+                href="{{ url_for('analytics') }}"
+                aria-label="Refresh analytics"
+                title="Refresh analytics"
+            >
+                <i class="fa-solid fa-rotate"></i>
+            </a>
+
+            <a
+                class="anlx-icon-action"
+                href="{{ url_for('history') }}"
+                aria-label="Open scan history"
+                title="Open scan history"
+            >
+                <i class="fa-solid fa-clock-rotate-left"></i>
+            </a>
+
+            <a
+                class="anlx-primary-action"
+                href="{{ url_for('upload') }}"
+            >
+                <i class="fa-solid fa-file-shield"></i>
+                New Analysis
+            </a>
+
+        </div>
+
+    </header>
+
+    <!-- =====================================================================
+         FORENSIC STATUS RIBBON
+         ===================================================================== -->
+
+    <section
+        class="anlx-intelligence-ribbon"
+        aria-label="Forensic analytics status"
+    >
+        <div class="anlx-intelligence-ribbon__label">
+            <i class="fa-solid fa-microchip"></i>
+            ANALYTICS ENGINE
+        </div>
+
+        <div class="anlx-intelligence-ribbon__track">
+            <div
+                class="anlx-intelligence-ribbon__ticker"
+                id="analyticsTicker"
+            >
+                <span>
+                    <i class="fa-solid fa-database"></i>
+                    {{ total_scans }} records available
+                </span>
+
+                <span>
+                    <i class="fa-solid fa-shield"></i>
+                    {{ safe_files }} clean outcomes
+                </span>
+
+                <span>
+                    <i class="fa-solid fa-virus"></i>
+                    {{ malicious_files }} threat detections
+                </span>
+
+                <span>
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    {{ critical_threats }} critical findings
+                </span>
+
+                <span>
+                    <i class="fa-solid fa-gauge-high"></i>
+                    Score {{ security_score_value|round(0)|int }}/100
+                </span>
+            </div>
+        </div>
+
+        <div class="anlx-intelligence-ribbon__last-scan">
+            <span>LAST SCAN</span>
+            <strong>{{ last_scan_value }}</strong>
+        </div>
+    </section>
+
+    <div
+        class="anlx-content"
+        id="analyticsMainContent"
+    >
+
+        <!-- =================================================================
+             HERO: DECISION INTELLIGENCE
+             ================================================================= -->
+
+        <section
+            class="anlx-hero"
+            aria-labelledby="analyticsHeroTitle"
+        >
+
+            <div class="anlx-hero__intro">
+
+                <div
+                    class="anlx-posture-badge anlx-posture-badge--{{ posture_tone }}"
+                >
+                    <span></span>
+                    {{ posture_label }}
+                </div>
+
+                <p class="anlx-eyebrow">
+                    BEYOND DASHBOARD MONITORING
+                </p>
+
+                <h2 id="analyticsHeroTitle">
+                    Turn scan data into security decisions.
+                </h2>
+
+                <p class="anlx-hero__description">
+                    The Dashboard shows operational activity. This workspace
+                    concentrates on exposure, investigation priority, evidence
+                    quality and the next security action.
+                </p>
+
+                <div class="anlx-hero__actions">
+                    <a
+                        class="anlx-button anlx-button--primary"
+                        href="#investigationQueue"
+                    >
+                        <i class="fa-solid fa-list-check"></i>
+                        Open Triage Queue
+                    </a>
+
+                    <a
+                        class="anlx-button anlx-button--secondary"
+                        href="#responsePlanner"
+                    >
+                        <i class="fa-solid fa-sliders"></i>
+                        Open Response Planner
+                    </a>
+                </div>
+
+                <div
+                    class="anlx-capability-grid"
+                    aria-label="Analytics capabilities"
+                >
+                    <article>
+                        <i class="fa-solid fa-filter-circle-dollar"></i>
+
+                        <div>
+                            <strong>Exposure analysis</strong>
+                            <span>Safe, malicious and critical ratios</span>
+                        </div>
+                    </article>
+
+                    <article>
+                        <i class="fa-solid fa-list-ol"></i>
+
+                        <div>
+                            <strong>Triage prioritization</strong>
+                            <span>Critical-first investigation workflow</span>
+                        </div>
+                    </article>
+
+                    <article>
+                        <i class="fa-solid fa-scale-balanced"></i>
+
+                        <div>
+                            <strong>Evidence quality</strong>
+                            <span>Portfolio-size interpretation</span>
+                        </div>
+                    </article>
+                </div>
+
+            </div>
+
+            <div class="anlx-hero__visual">
+
+                <div
+                    class="anlx-decision-core"
+                    data-score="{{ security_score_value }}"
+                    aria-label="Security score {{ security_score_value }} out of 100"
+                >
+                    <div
+                        class="anlx-decision-core__rings"
+                        aria-hidden="true"
+                    >
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+
+                    <div class="anlx-decision-core__center">
+                        <span>SECURITY HEALTH</span>
+
+                        <strong>
+                            {{ security_score_value|round(0)|int }}
+                            <small>/100</small>
+                        </strong>
+
+                        <em>{{ posture_label }}</em>
+                    </div>
+
+                    <span
+                        class="anlx-decision-node anlx-decision-node--one"
+                        title="Exposure"
+                    >
+                        <i class="fa-solid fa-crosshairs"></i>
+                    </span>
+
+                    <span
+                        class="anlx-decision-node anlx-decision-node--two"
+                        title="Evidence"
+                    >
+                        <i class="fa-solid fa-fingerprint"></i>
+                    </span>
+
+                    <span
+                        class="anlx-decision-node anlx-decision-node--three"
+                        title="Response"
+                    >
+                        <i class="fa-solid fa-bolt"></i>
+                    </span>
+                </div>
+
+                <div class="anlx-hero__decision-note">
+                    <span class="anlx-hero__decision-note-icon">
+                        <i class="fa-solid fa-arrow-trend-up"></i>
+                    </span>
+
+                    <div>
+                        <small>NEXT BEST ACTION</small>
+                        <strong>{{ urgency_label }}</strong>
+                        <p>{{ next_action }}</p>
+                    </div>
+                </div>
+
+            </div>
+
+        </section>
+
+        <!-- =================================================================
+             UNIQUE ANALYTICAL KPIs
+             ================================================================= -->
+
+        <section
+            class="anlx-section"
+            aria-labelledby="analyticsRatiosTitle"
+        >
+
+            <header class="anlx-section-header">
+                <div>
+                    <p class="anlx-eyebrow">
+                        DERIVED SECURITY RATIOS
+                    </p>
+
+                    <h2 id="analyticsRatiosTitle">
+                        Decision metrics not shown on the main Dashboard
+                    </h2>
+
+                    <p>
+                        These values are calculated from the stored scan totals
+                        supplied by the existing backend.
+                    </p>
+                </div>
+
+                <span class="anlx-section-header__badge">
+                    <span class="anlx-live-dot"></span>
+                    Real database ratios
+                </span>
+            </header>
+
+            <div class="anlx-ratio-grid">
+
+                <article
+                    class="anlx-ratio-card anlx-ratio-card--exposure"
+                    data-analytics-ratio="threat-rate"
+                >
+                    <div class="anlx-ratio-card__header">
+                        <span>
+                            <i class="fa-solid fa-crosshairs"></i>
+                        </span>
+
+                        <small>THREAT EXPOSURE RATE</small>
+                    </div>
+
+                    <strong
+                        class="anlx-ratio-card__value"
+                        data-counter-decimal="{{ threat_percentage }}"
+                    >
+                        {{ threat_percentage }}%
+                    </strong>
+
+                    <h3>{{ exposure_label }}</h3>
+
+                    <p>
+                        Percentage of completed scans recorded as malicious.
+                    </p>
+
+                    <footer>
+                        {{ malicious_files }} malicious out of
+                        {{ total_scans }} total
+                    </footer>
+                </article>
+
+                <article
+                    class="anlx-ratio-card anlx-ratio-card--critical"
+                    data-analytics-ratio="critical-share"
+                >
+                    <div class="anlx-ratio-card__header">
+                        <span>
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                        </span>
+
+                        <small>CRITICAL SHARE OF THREATS</small>
+                    </div>
+
+                    <strong
+                        class="anlx-ratio-card__value"
+                        data-counter-decimal="{{ critical_share_of_threats }}"
+                    >
+                        {{ critical_share_of_threats }}%
+                    </strong>
+
+                    <h3>
+                        {% if critical_threats > 0 %}
+                            Critical concentration detected
+                        {% else %}
+                            No critical concentration
+                        {% endif %}
+                    </h3>
+
+                    <p>
+                        Portion of malicious records carrying Critical risk.
+                    </p>
+
+                    <footer>
+                        {{ critical_threats }} critical out of
+                        {{ malicious_files }} malicious
+                    </footer>
+                </article>
+
+                <article
+                    class="anlx-ratio-card anlx-ratio-card--clean"
+                    data-analytics-ratio="clean-coverage"
+                >
+                    <div class="anlx-ratio-card__header">
+                        <span>
+                            <i class="fa-solid fa-shield-check"></i>
+                        </span>
+
+                        <small>CLEAN COVERAGE</small>
+                    </div>
+
+                    <strong
+                        class="anlx-ratio-card__value"
+                        data-counter-decimal="{{ safe_percentage }}"
+                    >
+                        {{ safe_percentage }}%
+                    </strong>
+
+                    <h3>
+                        {{ safe_files }} safe file{% if safe_files != 1 %}s{% endif %}
+                    </h3>
+
+                    <p>
+                        Share of stored scans that produced a safe result.
+                    </p>
+
+                    <footer>
+                        Safe-to-threat ratio:
+                        {{ safe_to_threat_ratio }} : 1
+                    </footer>
+                </article>
+
+                <article
+                    class="anlx-ratio-card anlx-ratio-card--evidence"
+                    data-analytics-ratio="evidence-quality"
+                >
+                    <div class="anlx-ratio-card__header">
+                        <span>
+                            <i class="fa-solid fa-database"></i>
+                        </span>
+
+                        <small>EVIDENCE MATURITY</small>
+                    </div>
+
+                    <strong class="anlx-ratio-card__value">
+                        {{ total_scans }}
+                    </strong>
+
+                    <h3>{{ evidence_label }}</h3>
+
+                    <p>{{ evidence_summary }}</p>
+
+                    <footer>
+                        Portfolio-size interpretation
+                    </footer>
+                </article>
+
+            </div>
+
+        </section>
+
+        <!-- =================================================================
+             EXPOSURE FUNNEL
+             ================================================================= -->
+
+        <section
+            class="anlx-section"
+            aria-labelledby="analyticsExposureTitle"
+        >
+
+            <header class="anlx-section-header">
+                <div>
+                    <p class="anlx-eyebrow">
+                        EXPOSURE FUNNEL
+                    </p>
+
+                    <h2 id="analyticsExposureTitle">
+                        From total evidence to immediate priority
+                    </h2>
+
+                    <p>
+                        Follow the scan portfolio from all records through
+                        malicious detections to critical findings.
+                    </p>
+                </div>
+
+                <span
+                    class="anlx-exposure-label anlx-exposure-label--{{ exposure_tone }}"
+                >
+                    {{ exposure_label }}
+                </span>
+            </header>
+
+            <div class="anlx-exposure-funnel">
+
+                <article
+                    class="anlx-funnel-stage anlx-funnel-stage--total"
+                    data-funnel-stage="total"
+                >
+                    <div class="anlx-funnel-stage__index">
+                        01
+                    </div>
+
+                    <span class="anlx-funnel-stage__icon">
+                        <i class="fa-solid fa-layer-group"></i>
+                    </span>
+
+                    <div class="anlx-funnel-stage__content">
+                        <small>TOTAL EVIDENCE</small>
+                        <strong>{{ total_scans }}</strong>
+                        <p>Every completed scan stored by the application.</p>
+                    </div>
+
+                    <div class="anlx-funnel-stage__share">
+                        <span>PORTFOLIO</span>
+                        <strong>100%</strong>
+                    </div>
+                </article>
+
+                <div
+                    class="anlx-funnel-connector"
+                    aria-hidden="true"
+                >
+                    <span></span>
+                    <i class="fa-solid fa-chevron-down"></i>
+                </div>
+
+                <article
+                    class="anlx-funnel-stage anlx-funnel-stage--malicious"
+                    data-funnel-stage="malicious"
+                >
+                    <div class="anlx-funnel-stage__index">
+                        02
+                    </div>
+
+                    <span class="anlx-funnel-stage__icon">
+                        <i class="fa-solid fa-virus"></i>
+                    </span>
+
+                    <div class="anlx-funnel-stage__content">
+                        <small>THREAT DETECTIONS</small>
+                        <strong>{{ malicious_files }}</strong>
+                        <p>Records requiring analyst validation and review.</p>
+                    </div>
+
+                    <div class="anlx-funnel-stage__share">
+                        <span>OF TOTAL</span>
+                        <strong>{{ threat_percentage }}%</strong>
+                    </div>
+                </article>
+
+                <div
+                    class="anlx-funnel-connector"
+                    aria-hidden="true"
+                >
+                    <span></span>
+                    <i class="fa-solid fa-chevron-down"></i>
+                </div>
+
+                <article
+                    class="anlx-funnel-stage anlx-funnel-stage--critical"
+                    data-funnel-stage="critical"
+                >
+                    <div class="anlx-funnel-stage__index">
+                        03
+                    </div>
+
+                    <span class="anlx-funnel-stage__icon">
+                        <i class="fa-solid fa-skull-crossbones"></i>
+                    </span>
+
+                    <div class="anlx-funnel-stage__content">
+                        <small>IMMEDIATE PRIORITY</small>
+                        <strong>{{ critical_threats }}</strong>
+                        <p>Critical findings that should be investigated first.</p>
+                    </div>
+
+                    <div class="anlx-funnel-stage__share">
+                        <span>OF THREATS</span>
+                        <strong>{{ critical_share_of_threats }}%</strong>
+                    </div>
+                </article>
+
+            </div>
+
+        </section>
+
+        <!-- =================================================================
+             INVESTIGATION QUEUE
+             ================================================================= -->
+
+        <section
+            class="anlx-section"
+            id="investigationQueue"
+            aria-labelledby="analyticsQueueTitle"
+        >
+
+            <header class="anlx-section-header">
+                <div>
+                    <p class="anlx-eyebrow">
+                        INVESTIGATION QUEUE
+                    </p>
+
+                    <h2 id="analyticsQueueTitle">
+                        Prioritize records before opening Scan History
+                    </h2>
+
+                    <p>
+                        This queue summarizes review workload without duplicating
+                        the detailed History table.
+                    </p>
+                </div>
+
+                <a
+                    class="anlx-section-header__link"
+                    href="{{ url_for('history') }}"
+                >
+                    Open complete history
+                    <i class="fa-solid fa-arrow-right"></i>
+                </a>
+            </header>
+
+            <div class="anlx-queue-layout">
+
+                <div class="anlx-queue-stack">
+
+                    <article
+                        class="anlx-queue-card anlx-queue-card--critical"
+                        data-queue-priority="1"
+                    >
+                        <span class="anlx-queue-card__priority">
+                            P1
+                        </span>
+
+                        <span class="anlx-queue-card__icon">
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                        </span>
+
+                        <div class="anlx-queue-card__content">
+                            <small>CRITICAL FINDINGS</small>
+                            <strong>{{ critical_threats }}</strong>
+                            <p>
+                                Review immediately and validate the stored
+                                recommendation for every record.
+                            </p>
+                        </div>
+
+                        <a href="{{ url_for('history') }}">
+                            Investigate
+                        </a>
+                    </article>
+
+                    <article
+                        class="anlx-queue-card anlx-queue-card--threat"
+                        data-queue-priority="2"
+                    >
+                        <span class="anlx-queue-card__priority">
+                            P2
+                        </span>
+
+                        <span class="anlx-queue-card__icon">
+                            <i class="fa-solid fa-shield-virus"></i>
+                        </span>
+
+                        <div class="anlx-queue-card__content">
+                            <small>NONCRITICAL THREATS</small>
+                            <strong>{{ noncritical_threats }}</strong>
+                            <p>
+                                Review after Critical findings and confirm
+                                confidence, risk and recommendation.
+                            </p>
+                        </div>
+
+                        <a href="{{ url_for('history') }}">
+                            Review
+                        </a>
+                    </article>
+
+                    <article
+                        class="anlx-queue-card anlx-queue-card--safe"
+                        data-queue-priority="3"
+                    >
+                        <span class="anlx-queue-card__priority">
+                            P3
+                        </span>
+
+                        <span class="anlx-queue-card__icon">
+                            <i class="fa-solid fa-box-archive"></i>
+                        </span>
+
+                        <div class="anlx-queue-card__content">
+                            <small>SAFE EVIDENCE</small>
+                            <strong>{{ safe_files }}</strong>
+                            <p>
+                                Retain for traceability and use as clean
+                                portfolio evidence.
+                            </p>
+                        </div>
+
+                        <a href="{{ url_for('history') }}">
+                            Verify
+                        </a>
+                    </article>
+
+                </div>
+
+                <aside class="anlx-queue-summary">
+
+                    <div class="anlx-queue-summary__header">
+                        <span>
+                            <i class="fa-solid fa-list-check"></i>
+                        </span>
+
+                        <div>
+                            <small>ACTIVE REVIEW LOAD</small>
+                            <strong>
+                                {{ malicious_files }}
+                                record{% if malicious_files != 1 %}s{% endif %}
+                            </strong>
+                        </div>
+                    </div>
+
+                    <div class="anlx-queue-summary__meter">
+                        <div>
+                            <span>Critical priority</span>
+                            <strong>{{ critical_threats }}</strong>
+                        </div>
+
+                        <progress
+                            max="{{ malicious_files if malicious_files > 0 else 1 }}"
+                            value="{{ critical_threats }}"
+                            aria-label="Critical share of active review queue"
+                        >
+                            {{ critical_share_of_threats }}%
+                        </progress>
+                    </div>
+
+                    <div class="anlx-queue-summary__meter">
+                        <div>
+                            <span>Standard threat review</span>
+                            <strong>{{ noncritical_threats }}</strong>
+                        </div>
+
+                        <progress
+                            max="{{ malicious_files if malicious_files > 0 else 1 }}"
+                            value="{{ noncritical_threats }}"
+                            aria-label="Noncritical share of active review queue"
+                        >
+                            {{ 100 - critical_share_of_threats if malicious_files > 0 else 0 }}%
+                        </progress>
+                    </div>
+
+                    <div
+                        class="anlx-queue-summary__status anlx-queue-summary__status--{{ urgency_tone }}"
+                    >
+                        <span class="anlx-live-dot"></span>
+
+                        <div>
+                            <small>CURRENT TRIAGE STATE</small>
+                            <strong>{{ urgency_label }}</strong>
+                        </div>
+                    </div>
+
+                    <p>
+                        {{ next_action }}
+                    </p>
+
+                </aside>
+
+            </div>
+
+        </section>
+
+        <!-- =================================================================
+             DECISION MATRIX
+             ================================================================= -->
+
+        <section
+            class="anlx-section"
+            aria-labelledby="analyticsDecisionMatrixTitle"
+        >
+
+            <header class="anlx-section-header">
+                <div>
+                    <p class="anlx-eyebrow">
+                        DECISION MATRIX
+                    </p>
+
+                    <h2 id="analyticsDecisionMatrixTitle">
+                        Four questions for the security analyst
+                    </h2>
+
+                    <p>
+                        Use the current evidence to determine urgency, confidence
+                        and the next investigation step.
+                    </p>
+                </div>
+            </header>
+
+            <div class="anlx-decision-grid">
+
+                <article
+                    class="anlx-decision-card anlx-decision-card--exposure"
+                >
+                    <span class="anlx-decision-card__number">
+                        01
+                    </span>
+
+                    <span class="anlx-decision-card__icon">
+                        <i class="fa-solid fa-crosshairs"></i>
+                    </span>
+
+                    <small>HOW MUCH EXPOSURE EXISTS?</small>
+                    <h3>{{ threat_percentage }}% threat rate</h3>
+
+                    <p>
+                        {{ malicious_files }} of {{ total_scans }} stored scans
+                        currently require threat review.
+                    </p>
+
+                    <span
+                        class="anlx-decision-card__answer anlx-decision-card__answer--{{ exposure_tone }}"
+                    >
+                        {{ exposure_label }}
+                    </span>
+                </article>
+
+                <article
+                    class="anlx-decision-card anlx-decision-card--urgency"
+                >
+                    <span class="anlx-decision-card__number">
+                        02
+                    </span>
+
+                    <span class="anlx-decision-card__icon">
+                        <i class="fa-solid fa-bolt"></i>
+                    </span>
+
+                    <small>HOW URGENT IS RESPONSE?</small>
+                    <h3>{{ critical_threats }} critical finding{% if critical_threats != 1 %}s{% endif %}</h3>
+
+                    <p>
+                        Critical findings represent
+                        {{ critical_share_of_threats }}% of the threat queue.
+                    </p>
+
+                    <span
+                        class="anlx-decision-card__answer anlx-decision-card__answer--{{ urgency_tone }}"
+                    >
+                        {{ urgency_label }}
+                    </span>
+                </article>
+
+                <article
+                    class="anlx-decision-card anlx-decision-card--evidence"
+                >
+                    <span class="anlx-decision-card__number">
+                        03
+                    </span>
+
+                    <span class="anlx-decision-card__icon">
+                        <i class="fa-solid fa-scale-balanced"></i>
+                    </span>
+
+                    <small>HOW STRONG IS THE EVIDENCE?</small>
+                    <h3>{{ total_scans }} stored observations</h3>
+
+                    <p>{{ evidence_summary }}</p>
+
+                    <span
+                        class="anlx-decision-card__answer anlx-decision-card__answer--{{ evidence_tone }}"
+                    >
+                        {{ evidence_label }}
+                    </span>
+                </article>
+
+                <article
+                    class="anlx-decision-card anlx-decision-card--action"
+                >
+                    <span class="anlx-decision-card__number">
+                        04
+                    </span>
+
+                    <span class="anlx-decision-card__icon">
+                        <i class="fa-solid fa-route"></i>
+                    </span>
+
+                    <small>WHAT SHOULD HAPPEN NEXT?</small>
+                    <h3>{{ urgency_label }}</h3>
+
+                    <p>{{ next_action }}</p>
+
+                    <a href="{{ url_for('history') }}">
+                        Continue investigation
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </a>
+                </article>
+
+            </div>
+
+        </section>
+
+        <!-- =================================================================
+             RESPONSE PLANNER
+             Future analytics.js will activate the local simulator.
+             It will not write to the database.
+             ================================================================= -->
+
+        <section
+            class="anlx-section"
+            id="responsePlanner"
+            aria-labelledby="analyticsPlannerTitle"
+        >
+
+            <header class="anlx-section-header">
+                <div>
+                    <p class="anlx-eyebrow">
+                        RESPONSE-PLANNING SIMULATOR
+                    </p>
+
+                    <h2 id="analyticsPlannerTitle">
+                        Estimate investigation workload locally
+                    </h2>
+
+                    <p>
+                        Adjust analyst capacity and review-time assumptions.
+                        This simulator is a browser-only planning tool and will
+                        not alter stored scan records.
+                    </p>
+                </div>
+
+                <span class="anlx-section-header__badge">
+                    <i class="fa-solid fa-laptop-code"></i>
+                    Local simulation
+                </span>
+            </header>
+
+            <div class="anlx-planner-layout">
+
+                <form
+                    class="anlx-planner-controls"
+                    id="analyticsPlannerForm"
+                    onsubmit="return false;"
+                >
+
+                    <div class="anlx-planner-control">
+                        <label for="analyticsAnalystCount">
+                            <span>Available analysts</span>
+                            <strong id="analyticsAnalystCountValue">2</strong>
+                        </label>
+
+                        <input
+                            type="range"
+                            id="analyticsAnalystCount"
+                            min="1"
+                            max="20"
+                            value="2"
+                            step="1"
+                        >
+
+                        <small>
+                            Number of analysts available for parallel review.
+                        </small>
+                    </div>
+
+                    <div class="anlx-planner-control">
+                        <label for="analyticsThreatMinutes">
+                            <span>Minutes per threat review</span>
+                            <strong id="analyticsThreatMinutesValue">20</strong>
+                        </label>
+
+                        <input
+                            type="range"
+                            id="analyticsThreatMinutes"
+                            min="5"
+                            max="120"
+                            value="20"
+                            step="5"
+                        >
+
+                        <small>
+                            Estimated time for a standard malicious record.
+                        </small>
+                    </div>
+
+                    <div class="anlx-planner-control">
+                        <label for="analyticsCriticalMinutes">
+                            <span>Minutes per critical review</span>
+                            <strong id="analyticsCriticalMinutesValue">45</strong>
+                        </label>
+
+                        <input
+                            type="range"
+                            id="analyticsCriticalMinutes"
+                            min="15"
+                            max="240"
+                            value="45"
+                            step="5"
+                        >
+
+                        <small>
+                            Estimated time for deeper critical investigation.
+                        </small>
+                    </div>
+
+                    <div class="anlx-planner-control">
+                        <label for="analyticsDailyCapacity">
+                            <span>Working hours per analyst</span>
+                            <strong id="analyticsDailyCapacityValue">8</strong>
+                        </label>
+
+                        <input
+                            type="range"
+                            id="analyticsDailyCapacity"
+                            min="1"
+                            max="12"
+                            value="8"
+                            step="1"
+                        >
+
+                        <small>
+                            Available investigation time during one workday.
+                        </small>
+                    </div>
+
+                    <button
+                        class="anlx-button anlx-button--primary"
+                        type="button"
+                        id="analyticsPlannerReset"
+                    >
+                        <i class="fa-solid fa-arrow-rotate-left"></i>
+                        Reset Assumptions
+                    </button>
+
+                </form>
+
+                <div class="anlx-planner-results">
+
+                    <article>
+                        <span>
+                            <i class="fa-solid fa-clock"></i>
+                        </span>
+
+                        <div>
+                            <small>ESTIMATED REVIEW HOURS</small>
+                            <strong id="analyticsEstimatedHours">
+                                Pending JS
+                            </strong>
+                        </div>
+                    </article>
+
+                    <article>
+                        <span>
+                            <i class="fa-solid fa-calendar-check"></i>
+                        </span>
+
+                        <div>
+                            <small>ESTIMATED WORKDAYS</small>
+                            <strong id="analyticsEstimatedDays">
+                                Pending JS
+                            </strong>
+                        </div>
+                    </article>
+
+                    <article>
+                        <span>
+                            <i class="fa-solid fa-person-circle-check"></i>
+                        </span>
+
+                        <div>
+                            <small>RECORDS PER ANALYST</small>
+                            <strong id="analyticsRecordsPerAnalyst">
+                                Pending JS
+                            </strong>
+                        </div>
+                    </article>
+
+                    <article>
+                        <span>
+                            <i class="fa-solid fa-flag-checkered"></i>
+                        </span>
+
+                        <div>
+                            <small>PROJECTED CLEARANCE</small>
+                            <strong id="analyticsProjectedClearance">
+                                Pending JS
+                            </strong>
+                        </div>
+                    </article>
+
+                    <div class="anlx-planner-results__note">
+                        <i class="fa-solid fa-circle-info"></i>
+
+                        <p>
+                            Calculations will use {{ noncritical_threats }}
+                            standard-threat reviews and {{ critical_threats }}
+                            critical reviews. They are planning estimates, not
+                            measured response times.
+                        </p>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+        <!-- =================================================================
+             EVIDENCE QUALITY AND LIMITATIONS
+             ================================================================= -->
+
+        <section
+            class="anlx-section"
+            aria-labelledby="analyticsEvidenceTitle"
+        >
+
+            <header class="anlx-section-header">
+                <div>
+                    <p class="anlx-eyebrow">
+                        EVIDENCE QUALITY
+                    </p>
+
+                    <h2 id="analyticsEvidenceTitle">
+                        Interpret results with the correct level of confidence
+                    </h2>
+
+                    <p>
+                        Aggregate analytics become more stable as the number
+                        of stored scan records increases.
+                    </p>
+                </div>
+            </header>
+
+            <div class="anlx-evidence-layout">
+
+                <article
+                    class="anlx-evidence-score anlx-evidence-score--{{ evidence_tone }}"
+                >
+                    <span class="anlx-evidence-score__icon">
+                        <i class="fa-solid fa-database"></i>
+                    </span>
+
+                    <div>
+                        <small>PORTFOLIO MATURITY</small>
+                        <strong>{{ evidence_label }}</strong>
+                        <p>{{ evidence_summary }}</p>
+                    </div>
+
+                    <span class="anlx-evidence-score__count">
+                        {{ total_scans }}
+                        <small>records</small>
+                    </span>
+                </article>
+
+                <div class="anlx-evidence-checklist">
+
+                    <article>
+                        <span>
+                            <i class="fa-solid fa-check"></i>
+                        </span>
+
+                        <div>
+                            <strong>Database sourced</strong>
+                            <p>
+                                Ratios use existing totals supplied by
+                                <code>dashboard_stats()</code>.
+                            </p>
+                        </div>
+                    </article>
+
+                    <article>
+                        <span>
+                            <i class="fa-solid fa-check"></i>
+                        </span>
+
+                        <div>
+                            <strong>No dummy threat categories</strong>
+                            <p>
+                                This page does not use fixed Malware, Phishing,
+                                Trojan, Worm or Spyware percentages.
+                            </p>
+                        </div>
+                    </article>
+
+                    <article>
+                        <span>
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                        </span>
+
+                        <div>
+                            <strong>Aggregate interpretation only</strong>
+                            <p>
+                                Detailed file-level evidence must still be
+                                reviewed in Scan History.
+                            </p>
+                        </div>
+                    </article>
+
+                    <article>
+                        <span>
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                        </span>
+
+                        <div>
+                            <strong>Small samples can shift quickly</strong>
+                            <p>
+                                A few new scans can materially change percentages
+                                when the portfolio is limited.
+                            </p>
+                        </div>
+                    </article>
+
+                </div>
+
+            </div>
+
+        </section>
+
+        <!-- =================================================================
+             ANALYST RECOMMENDATIONS
+             ================================================================= -->
+
+        <section
+            class="anlx-section"
+            aria-labelledby="analyticsRecommendationsTitle"
+        >
+
+            <header class="anlx-section-header">
+                <div>
+                    <p class="anlx-eyebrow">
+                        ANALYST RECOMMENDATIONS
+                    </p>
+
+                    <h2 id="analyticsRecommendationsTitle">
+                        Recommended actions from the current portfolio
+                    </h2>
+
+                    <p>
+                        Recommendations are generated through transparent
+                        count-and-ratio rules in this template.
+                    </p>
+                </div>
+            </header>
+
+            <div class="anlx-recommendation-grid">
+
+                {% if critical_threats > 0 %}
+                    <article class="anlx-recommendation-card anlx-recommendation-card--critical">
+                        <span>
+                            <i class="fa-solid fa-siren-on"></i>
+                        </span>
+
+                        <div>
+                            <small>PRIORITY 1</small>
+                            <h3>Investigate Critical records immediately</h3>
+                            <p>
+                                {{ critical_threats }} Critical record{% if critical_threats != 1 %}s are{% else %} is{% endif %}
+                                present in the stored portfolio.
+                            </p>
+                        </div>
+
+                        <a href="{{ url_for('history') }}">
+                            Open History
+                        </a>
+                    </article>
+                {% endif %}
+
+                {% if noncritical_threats > 0 %}
+                    <article class="anlx-recommendation-card anlx-recommendation-card--warning">
+                        <span>
+                            <i class="fa-solid fa-shield-virus"></i>
+                        </span>
+
+                        <div>
+                            <small>PRIORITY 2</small>
+                            <h3>Validate remaining malicious detections</h3>
+                            <p>
+                                Review {{ noncritical_threats }} noncritical
+                                malicious record{% if noncritical_threats != 1 %}s{% endif %}
+                                after Critical triage.
+                            </p>
+                        </div>
+
+                        <a href="{{ url_for('history') }}">
+                            Review Threats
+                        </a>
+                    </article>
+                {% endif %}
+
+                {% if total_scans < 20 %}
+                    <article class="anlx-recommendation-card anlx-recommendation-card--evidence">
+                        <span>
+                            <i class="fa-solid fa-flask-vial"></i>
+                        </span>
+
+                        <div>
+                            <small>EVIDENCE DEVELOPMENT</small>
+                            <h3>Increase the scan evidence base</h3>
+                            <p>
+                                Run additional representative scans before
+                                treating percentages as stable.
+                            </p>
+                        </div>
+
+                        <a href="{{ url_for('upload') }}">
+                            Analyze File
+                        </a>
+                    </article>
+                {% endif %}
+
+                {% if malicious_files == 0 and total_scans > 0 %}
+                    <article class="anlx-recommendation-card anlx-recommendation-card--safe">
+                        <span>
+                            <i class="fa-solid fa-shield-check"></i>
+                        </span>
+
+                        <div>
+                            <small>CONTINUOUS MONITORING</small>
+                            <h3>Maintain routine scanning</h3>
+                            <p>
+                                No malicious records are currently stored, but
+                                ongoing analysis is still required.
+                            </p>
+                        </div>
+
+                        <a href="{{ url_for('upload') }}">
+                            Continue Scanning
+                        </a>
+                    </article>
+                {% endif %}
+
+                {% if total_scans == 0 %}
+                    <article class="anlx-recommendation-card anlx-recommendation-card--neutral">
+                        <span>
+                            <i class="fa-solid fa-file-circle-plus"></i>
+                        </span>
+
+                        <div>
+                            <small>FIRST STEP</small>
+                            <h3>Create the first analytics record</h3>
+                            <p>
+                                No stored scans are available for analysis.
+                            </p>
+                        </div>
+
+                        <a href="{{ url_for('upload') }}">
+                            Start Analysis
+                        </a>
+                    </article>
+                {% endif %}
+
+            </div>
+
+        </section>
+
+        <!-- =================================================================
+             DATA LINEAGE AND EXPORT CENTER
+             ================================================================= -->
+
+        <section
+            class="anlx-section"
+            aria-labelledby="analyticsLineageTitle"
+        >
+
+            <header class="anlx-section-header">
+                <div>
+                    <p class="anlx-eyebrow">
+                        DATA LINEAGE & EXPORT
+                    </p>
+
+                    <h2 id="analyticsLineageTitle">
+                        Trace each insight back to stored scan evidence
+                    </h2>
+
+                    <p>
+                        Analytics is read-only. Source records remain in the
+                        existing database and History workflow.
+                    </p>
+                </div>
+            </header>
+
+            <div class="anlx-lineage-layout">
+
+                <div class="anlx-lineage-flow">
+
+                    <article>
+                        <span>01</span>
+                        <i class="fa-solid fa-file-arrow-up"></i>
+
+                        <div>
+                            <strong>Upload</strong>
+                            <small>File enters existing scan workflow</small>
+                        </div>
+                    </article>
+
+                    <i
+                        class="fa-solid fa-arrow-right"
+                        aria-hidden="true"
+                    ></i>
+
+                    <article>
+                        <span>02</span>
+                        <i class="fa-solid fa-brain"></i>
+
+                        <div>
+                            <strong>Prediction</strong>
+                            <small>Existing ML classifier produces outcome</small>
+                        </div>
+                    </article>
+
+                    <i
+                        class="fa-solid fa-arrow-right"
+                        aria-hidden="true"
+                    ></i>
+
+                    <article>
+                        <span>03</span>
+                        <i class="fa-solid fa-database"></i>
+
+                        <div>
+                            <strong>Storage</strong>
+                            <small>Result is saved to threat.db</small>
+                        </div>
+                    </article>
+
+                    <i
+                        class="fa-solid fa-arrow-right"
+                        aria-hidden="true"
+                    ></i>
+
+                    <article>
+                        <span>04</span>
+                        <i class="fa-solid fa-magnifying-glass-chart"></i>
+
+                        <div>
+                            <strong>Analytics</strong>
+                            <small>Ratios and decisions are derived</small>
+                        </div>
+                    </article>
+
+                    <i
+                        class="fa-solid fa-arrow-right"
+                        aria-hidden="true"
+                    ></i>
+
+                    <article>
+                        <span>05</span>
+                        <i class="fa-solid fa-list-check"></i>
+
+                        <div>
+                            <strong>Investigation</strong>
+                            <small>Analyst reviews source record in History</small>
+                        </div>
+                    </article>
+
+                </div>
+
+                <aside class="anlx-export-center">
+
+                    <div class="anlx-export-center__header">
+                        <span>
+                            <i class="fa-solid fa-file-export"></i>
+                        </span>
+
+                        <div>
+                            <small>REPORTING CENTER</small>
+                            <strong>Export stored scan evidence</strong>
+                        </div>
+                    </div>
+
+                    <a
+                        href="{{ url_for('export_csv') }}"
+                        class="anlx-export-card"
+                    >
+                        <span>
+                            <i class="fa-solid fa-file-csv"></i>
+                        </span>
+
+                        <div>
+                            <strong>Download CSV</strong>
+                            <small>Structured scan records</small>
+                        </div>
+
+                        <i class="fa-solid fa-download"></i>
+                    </a>
+
+                    <a
+                        href="{{ url_for('export_pdf') }}"
+                        class="anlx-export-card"
+                    >
+                        <span>
+                            <i class="fa-solid fa-file-pdf"></i>
+                        </span>
+
+                        <div>
+                            <strong>Download PDF</strong>
+                            <small>Printable threat report</small>
+                        </div>
+
+                        <i class="fa-solid fa-download"></i>
+                    </a>
+
+                    <a
+                        href="{{ url_for('history') }}"
+                        class="anlx-export-card"
+                    >
+                        <span>
+                            <i class="fa-solid fa-clock-rotate-left"></i>
+                        </span>
+
+                        <div>
+                            <strong>Open Scan History</strong>
+                            <small>Review individual evidence</small>
+                        </div>
+
+                        <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                    </a>
+
+                </aside>
+
+            </div>
+
+        </section>
+
+        <!-- =================================================================
+             METRIC GLOSSARY
+             ================================================================= -->
+
+        <section
+            class="anlx-section"
+            aria-labelledby="analyticsGlossaryTitle"
+        >
+
+            <header class="anlx-section-header">
+                <div>
+                    <p class="anlx-eyebrow">
+                        METRIC GLOSSARY
+                    </p>
+
+                    <h2 id="analyticsGlossaryTitle">
+                        How this page calculates its insights
+                    </h2>
+
+                    <p>
+                        Transparent definitions make the analysis easier to
+                        explain during project demonstrations.
+                    </p>
+                </div>
+            </header>
+
+            <div class="anlx-glossary-grid">
+
+                <article>
+                    <span>01</span>
+
+                    <div>
+                        <strong>Threat Exposure Rate</strong>
+                        <code>Malicious Files ÷ Total Scans × 100</code>
+                        <p>
+                            Measures how much of the stored portfolio is
+                            classified as malicious.
+                        </p>
+                    </div>
+                </article>
+
+                <article>
+                    <span>02</span>
+
+                    <div>
+                        <strong>Critical Share of Threats</strong>
+                        <code>Critical Threats ÷ Malicious Files × 100</code>
+                        <p>
+                            Shows how concentrated the threat queue is in its
+                            highest-priority category.
+                        </p>
+                    </div>
+                </article>
+
+                <article>
+                    <span>03</span>
+
+                    <div>
+                        <strong>Clean Coverage</strong>
+                        <code>Safe Files ÷ Total Scans × 100</code>
+                        <p>
+                            Shows the share of stored records classified as safe.
+                        </p>
+                    </div>
+                </article>
+
+                <article>
+                    <span>04</span>
+
+                    <div>
+                        <strong>Evidence Maturity</strong>
+                        <code>Interpretation based on Total Scans</code>
+                        <p>
+                            Communicates whether aggregate percentages are based
+                            on a limited, emerging, established or broad sample.
+                        </p>
+                    </div>
+                </article>
+
+            </div>
+
+        </section>
+
+        <!-- =================================================================
+             FOOTER
+             ================================================================= -->
+
+        <footer class="anlx-footer">
+
+            <div>
+                <span class="anlx-live-dot"></span>
+
+                <strong>
+                    Forensic analytics workspace online
+                </strong>
+
+                <small>
+                    Read-only analysis of existing scan records.
+                </small>
+            </div>
+
+            <nav aria-label="Analytics footer navigation">
+                <a href="{{ url_for('dashboard') }}">
+                    Dashboard
+                </a>
+
+                <a href="{{ url_for('history') }}">
+                    History
+                </a>
+
+                <a href="{{ url_for('upload') }}">
+                    Upload
+                </a>
+            </nav>
+
+        </footer>
 
     </div>
 
-</div>
+    <!-- =====================================================================
+         FUTURE JAVASCRIPT HOOKS
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+         The matching analytics.js will:
+         - run page entrance animations
+         - update the local clock
+         - activate the workload planner
+         - calculate review hours and workdays
+         - animate ratios and funnel stages
+         - support alert dismissal
+         - add page-only ambient effects
 
-<script>
+         It will not modify the database, scan records or Flask routes.
+         ===================================================================== -->
 
-const ctx = document.getElementById("myChart");
+    <div
+        class="anlx-toast-region"
+        id="analyticsToastRegion"
+        aria-live="polite"
+        aria-atomic="true"
+    ></div>
 
-new Chart(ctx, {
-
-    type: "doughnut",
-
-    data: {
-
-        labels: [
-            "Malware",
-            "Phishing",
-            "Trojan",
-            "Worm",
-            "Spyware"
-        ],
-
-        datasets: [{
-
-            data: [35,20,18,12,15],
-
-            backgroundColor: [
-                "#ff4d4d",
-                "#ffb84d",
-                "#66b3ff",
-                "#5cd65c",
-                "#b366ff"
-            ],
-
-            borderColor: "#1e1e1e",
-            borderWidth: 2
-
-        }]
-
-    },
-
-    options: {
-
-        responsive: true,
-        maintainAspectRatio: false,
-
-        cutout: "55%",
-
-        plugins: {
-
-            legend: {
-
-                position: "right",
-
-                labels: {
-                    color: "white",
-                    font: {
-                        size: 14
-                    }
-                }
-
-            },
-
-            title: {
-
-                display: true,
-
-                text: "Threat Distribution",
-
-                color: "white",
-
-                font: {
-                    size: 22
-                }
-
-            }
-
-        }
-
-    }
-
-});
-
-</script>
+</main>
 
 {% endblock %}

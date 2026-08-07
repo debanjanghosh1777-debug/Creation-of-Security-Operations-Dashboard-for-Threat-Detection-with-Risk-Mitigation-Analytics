@@ -1,43 +1,71 @@
-<nav class="top-navbar">
+<nav class="top-navbar hud-top-bar">
 
+    <!-- Left Branding & Telemetry -->
     <div class="nav-left">
-        <h2>AI Threat Detection System</h2>
-        <p>Security Operations Center</p>
+        <div class="title-with-badge">
+            <h2 class="hud-main-title">AI Threat Detection System</h2>
+            <span class="hud-glitch-tag">SOC v4.0</span>
+        </div>
+        <p class="hud-sub-info">
+            <span class="live-status-dot"></span> System Online <span class="hud-divider">|</span> Security Operations Center
+        </p>
     </div>
 
-    <div class="nav-center">
+    <!-- Center Cyber Search Bar with Integrated Shortcut Hint -->
+    <div class="nav-center top-search-container">
+        <i class="fa-solid fa-magnifying-glass search-ico"></i>
         <input
             type="text"
-            placeholder="Search files, threats, reports..."
-            class="search-box">
+            placeholder="Search files, threats, hashes, reports..."
+            class="search-box top-hud-search">
+        <span class="search-key-badge">CTRL + K</span>
     </div>
 
-    <div class="nav-right">
+    <!-- Right Live Telemetry & User Profile -->
+    <div class="nav-right top-header-telemetry">
+        
+        <!-- Live Radar Ticker -->
+        <div class="telemetry-ticker">
+            <span class="ticker-label"><i class="fa-solid fa-radio"></i> RADAR:</span>
+            <div class="ticker-scroll">
+                <span>[NET_MONITOR] 1.2 Gbps • [XGBOOST] ML Active • [FIREWALL] Protected</span>
+            </div>
+        </div>
 
-        <span class="status">
-            🟢 System Online
-        </span>
+        <!-- Waveform Equalizer -->
+        <div class="telemetry-wave-box" title="Network Activity">
+            <span class="wave-bar bar-1"></span>
+            <span class="wave-bar bar-2"></span>
+            <span class="wave-bar bar-3"></span>
+            <span class="wave-bar bar-4"></span>
+            <span class="wave-bar bar-5"></span>
+        </div>
 
-        <div class="user">
+        <!-- Mini Radar Sweep -->
+        <div class="mini-radar-node" title="Radar Active">
+            <div class="radar-sweep-hand"></div>
+            <div class="radar-dot dot-1"></div>
+        </div>
 
+        <!-- Command Clock -->
+        <div class="top-clock-display">
+            <small>COMMAND TIME</small>
+            <h4 id="topHeaderClock">00:00:00 UTC</h4>
+        </div>
+
+        <!-- User Profile -->
+        <div class="user hud-user-profile">
             <div class="avatar">
                 {% if current_user.is_authenticated %}
                     {{ current_user.username[0]|upper }}
                 {% else %}
-                    G
+                    A
                 {% endif %}
             </div>
-
-            <div>
-                <strong>
-                    {% if current_user.is_authenticated %}
-                        {{ current_user.username }}
-                    {% endif %}
-                </strong>
-                <br>
+            <div class="user-meta">
+                <strong>{{ current_user.username if current_user.is_authenticated else 'admin' }}</strong>
                 <small>Administrator</small>
             </div>
-
         </div>
 
     </div>

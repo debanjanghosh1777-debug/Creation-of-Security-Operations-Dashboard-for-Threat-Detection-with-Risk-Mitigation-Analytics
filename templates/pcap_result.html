@@ -1,0 +1,30 @@
+{% extends "layout.html" %}
+
+{% block content %}
+
+{% set payload =
+    result if result is defined
+    else analysis if analysis is defined
+    else data if data is defined
+    else report if report is defined
+    else {}
+%}
+
+<div style="padding: 30px; color: white;">
+    <h1>Packet Analysis Result</h1>
+
+    <pre style="
+        padding: 20px;
+        overflow: auto;
+        border-radius: 12px;
+        background: #07131f;
+        color: #65e1b7;
+        white-space: pre-wrap;
+    ">{{ payload | tojson(indent=2) }}</pre>
+
+    <a href="{{ url_for('security_tools') }}">
+        Return to Security Tools
+    </a>
+</div>
+
+{% endblock %}

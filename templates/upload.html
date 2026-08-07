@@ -2,264 +2,1836 @@
 
 {% block content %}
 
-<div class="dashboard-wrapper">
+{# ==========================================================================
+   AI THREAT DETECTION — ADVANCED FILE ANALYSIS WORKSPACE
+   File: templates/upload.html
 
- <!-- ================= HERO ================= -->
+   Backend contract preserved:
+   - POST request to url_for('upload')
+   - multipart/form-data encoding
+   - single uploaded file
+   - input name="file"
+   - input id="fileInput"
 
-<div class="hero-section">
+   Styling isolation:
+   - All page-specific classes use the "uplx-" namespace
+   - No generic hero/card/button classes are used
+   - The structure is ready for a dedicated upload.css and upload.js
+   ========================================================================== #}
 
-    <canvas id="uploadHeroParticles"></canvas>
-    <canvas id="digitalRain"></canvas>
+{% set analyst_name =
+    current_user.username
+    if current_user is defined and current_user.is_authenticated
+    else 'Security Analyst'
+%}
 
-    <div class="hero-left">
+<a class="uplx-skip-link" href="#uplxMainContent">
+    Skip to file analysis workspace
+</a>
 
-        <h1>Upload & Analyze Files</h1>
+<main
+    class="uplx-page"
+    id="uplxPage"
+    data-page="advanced-upload"
+    data-max-files="1"
+>
 
-        <p>
-            Upload suspicious files and let the AI engine perform
-            malware detection, feature extraction and risk analysis.
+    <div class="uplx-ambient" aria-hidden="true">
+        <canvas class="uplx-ambient__mesh" id="uploadMeshCanvas"></canvas>
+        <canvas class="uplx-ambient__traffic" id="uploadTrafficCanvas"></canvas>
+        <div class="uplx-ambient__glow uplx-ambient__glow--cyan"></div>
+        <div class="uplx-ambient__glow uplx-ambient__glow--blue"></div>
+        <div class="uplx-ambient__glow uplx-ambient__glow--violet"></div>
+        <div class="uplx-ambient__grid"></div>
+        <div class="uplx-ambient__noise"></div>
+        <div class="uplx-ambient__vignette"></div>
+        <div class="uplx-cursor-light" id="uploadCursorLight"></div>
+    </div>
+
+    <div class="uplx-boot" id="uploadBootSequence" aria-hidden="true">
+        <div class="uplx-boot__scanner">
+            <span class="uplx-boot__ring uplx-boot__ring--one"></span>
+            <span class="uplx-boot__ring uplx-boot__ring--two"></span>
+            <span class="uplx-boot__ring uplx-boot__ring--three"></span>
+            <div class="uplx-boot__core">
+                <i class="fa-solid fa-file-shield"></i>
+            </div>
+            <span class="uplx-boot__beam"></span>
+        </div>
+
+        <p class="uplx-boot__title">
+            Initialising Secure File Analysis Workspace
         </p>
 
-        <div class="hero-buttons">
-
-            <button class="primary-btn">
-                <i class="fa-solid fa-shield-halved"></i>
-                AI Malware Detection
-            </button>
-
-            <button class="secondary-btn">
-                <i class="fa-solid fa-brain"></i>
-                XGBoost Model
-            </button>
-
+        <div class="uplx-boot__progress">
+            <span id="uploadBootBar"></span>
         </div>
 
+        <span class="uplx-boot__percentage" id="uploadBootPercentage">
+            0%
+        </span>
     </div>
 
-    <div class="hero-right">
+    <header class="uplx-command-header">
 
-        <div class="logo-container">
+        <div class="uplx-command-header__identity">
 
-            <span class="node node1"></span>
-            <span class="node node2"></span>
-            <span class="node node3"></span>
-            <span class="node node4"></span>
+            <nav class="uplx-breadcrumb" aria-label="Upload workspace breadcrumb">
+                <a href="{{ url_for('dashboard') }}">
+                    Security Operations
+                </a>
 
-            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="AI Shield">
+                <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
 
-        </div>
+                <strong>File Analysis</strong>
+            </nav>
 
-    </div>
+            <div class="uplx-command-title-row">
 
-</div>
-   
-    <!-- ================= MAIN GRID ================= -->
+                <div>
+                    <p class="uplx-eyebrow">
+                        SECURE AI ANALYSIS ENVIRONMENT
+                    </p>
 
-    <div class="chart-grid">
+                    <h1 id="uplxMainContent">
+                        Upload Intelligence Workspace
+                    </h1>
 
-        <!-- LEFT -->
-
-        <div class="left-column">
-
-            <div class="chart-card">
-
-                <div class="card-header">
-
-                    <h3>
-
-                        <i class="fa-solid fa-upload"></i>
-
-                        Upload File
-
-                    </h3>
-
+                    <p class="uplx-command-subtitle">
+                        Submit a file for static feature extraction,
+                        AI classification, confidence scoring and
+                        risk-level assessment.
+                    </p>
                 </div>
 
-                <form
-                    action="{{ url_for('upload') }}"
-                    method="POST"
-                    enctype="multipart/form-data">
+                <div
+                    class="uplx-security-state"
+                    aria-label="Secure analysis environment operational"
+                >
+                    <span class="uplx-security-state__signal"></span>
 
-                    <div class="upload-box">
+                    <div>
+                        <small>ANALYSIS FABRIC</small>
+                        <strong>SECURE &amp; READY</strong>
+                    </div>
+                </div>
 
-                        <i class="fa-solid fa-cloud-arrow-up fa-5x"></i>
+            </div>
 
-                        <h2>Select File</h2>
+        </div>
 
+        <div class="uplx-command-header__controls">
+
+            <div class="uplx-command-clock">
+                <span>LOCAL ANALYSIS TIME</span>
+                <strong id="uploadLocalClock">--:--:--</strong>
+                <small id="uploadLocalDate">Loading date</small>
+            </div>
+
+            <button
+                class="uplx-icon-button"
+                id="uploadSoundToggle"
+                type="button"
+                aria-label="Enable upload workspace sounds"
+                aria-pressed="false"
+                data-tooltip="Interface sound"
+            >
+                <i class="fa-solid fa-volume-xmark"></i>
+            </button>
+
+            <button
+                class="uplx-icon-button"
+                id="uploadFocusModeToggle"
+                type="button"
+                aria-label="Enable distraction-free upload mode"
+                aria-pressed="false"
+                data-tooltip="Focus mode"
+            >
+                <i class="fa-solid fa-expand"></i>
+            </button>
+
+            <button
+                class="uplx-icon-button"
+                id="openUploadHelp"
+                type="button"
+                aria-label="Open upload help"
+                aria-haspopup="dialog"
+                aria-controls="uploadHelpModal"
+                data-tooltip="Upload help"
+            >
+                <i class="fa-solid fa-circle-question"></i>
+            </button>
+
+        </div>
+
+    </header>
+
+    <section class="uplx-engine-ribbon" aria-label="Live analysis engine status">
+
+        <div class="uplx-engine-ribbon__label">
+            <span class="uplx-live-dot"></span>
+            ANALYSIS ENGINE
+        </div>
+
+        <div class="uplx-engine-ribbon__viewport">
+            <div class="uplx-engine-ribbon__track" id="uploadEngineTicker">
+
+                <span>
+                    <i class="fa-solid fa-brain"></i>
+                    XGBoost classifier online
+                </span>
+
+                <span>
+                    <i class="fa-solid fa-wave-square"></i>
+                    Static feature extractor ready
+                </span>
+
+                <span>
+                    <i class="fa-solid fa-fingerprint"></i>
+                    Hash intelligence available
+                </span>
+
+                <span>
+                    <i class="fa-solid fa-shield-halved"></i>
+                    Secure processing channel active
+                </span>
+
+                <span>
+                    <i class="fa-solid fa-database"></i>
+                    Threat history database connected
+                </span>
+
+                <span>
+                    <i class="fa-solid fa-lock"></i>
+                    Session protection enabled
+                </span>
+
+            </div>
+        </div>
+
+        <div class="uplx-engine-ribbon__latency">
+            <small>ENGINE LATENCY</small>
+            <strong id="uploadEngineLatency">11 ms</strong>
+        </div>
+
+    </section>
+
+    <section class="uplx-hero" aria-labelledby="uploadHeroTitle">
+
+        <canvas class="uplx-hero__particles" id="uploadHeroParticles" aria-hidden="true"></canvas>
+        <canvas class="uplx-hero__rain" id="digitalRain" aria-hidden="true"></canvas>
+        <div class="uplx-hero__grid" aria-hidden="true"></div>
+        <div class="uplx-hero__scanline" aria-hidden="true"></div>
+
+        <div class="uplx-hero__content">
+
+            <span class="uplx-hero__badge">
+                <span class="uplx-live-dot"></span>
+                ENTERPRISE MALWARE ANALYSIS
+            </span>
+
+            <p class="uplx-hero__welcome">
+                Analyst session:
+                <strong>{{ analyst_name }}</strong>
+            </p>
+
+            <h2 id="uploadHeroTitle">
+                Submit once.
+                <span>Analyse intelligently.</span>
+            </h2>
+
+            <p class="uplx-hero__description">
+                The workspace prepares your selected file for AI-powered
+                inspection while presenting file identity, validation,
+                analysis stages and security recommendations in one place.
+            </p>
+
+            <div class="uplx-hero__capabilities">
+
+                <article class="uplx-hero-capability">
+                    <span>
+                        <i class="fa-solid fa-file-waveform"></i>
+                    </span>
+
+                    <div>
+                        <strong>Feature Extraction</strong>
+                        <small>Static file intelligence</small>
+                    </div>
+                </article>
+
+                <article class="uplx-hero-capability">
+                    <span>
+                        <i class="fa-solid fa-brain"></i>
+                    </span>
+
+                    <div>
+                        <strong>AI Classification</strong>
+                        <small>XGBoost prediction</small>
+                    </div>
+                </article>
+
+                <article class="uplx-hero-capability">
+                    <span>
+                        <i class="fa-solid fa-gauge-high"></i>
+                    </span>
+
+                    <div>
+                        <strong>Risk Scoring</strong>
+                        <small>Confidence and severity</small>
+                    </div>
+                </article>
+
+            </div>
+
+        </div>
+
+        <div
+            class="uplx-hero__visual"
+            id="uploadScannerStage"
+            aria-label="AI file scanner visualisation"
+        >
+
+            <div class="uplx-scanner-orbit uplx-scanner-orbit--outer">
+                <span class="uplx-scanner-node uplx-scanner-node--one"></span>
+                <span class="uplx-scanner-node uplx-scanner-node--two"></span>
+                <span class="uplx-scanner-node uplx-scanner-node--three"></span>
+            </div>
+
+            <div class="uplx-scanner-orbit uplx-scanner-orbit--middle"></div>
+            <div class="uplx-scanner-orbit uplx-scanner-orbit--inner"></div>
+
+            <div class="uplx-scanner-axis uplx-scanner-axis--horizontal"></div>
+            <div class="uplx-scanner-axis uplx-scanner-axis--vertical"></div>
+
+            <div class="uplx-scanner-label uplx-scanner-label--top">
+                STATIC ANALYSIS // READY
+            </div>
+
+            <div class="uplx-scanner-label uplx-scanner-label--right">
+                MODEL // XGBOOST
+            </div>
+
+            <div class="uplx-scanner-label uplx-scanner-label--bottom">
+                SECURE CHANNEL // ACTIVE
+            </div>
+
+            <div class="uplx-scanner-label uplx-scanner-label--left">
+                FILE NODE // A-01
+            </div>
+
+            <div class="uplx-scanner-reactor" id="uploadScannerReactor">
+                <span class="uplx-scanner-reactor__energy"></span>
+                <span class="uplx-scanner-reactor__pulse"></span>
+
+                <div class="uplx-scanner-reactor__file">
+                    <i class="fa-solid fa-file-shield"></i>
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                </div>
+
+                <div class="uplx-scanner-reactor__beam"></div>
+            </div>
+
+            <div class="uplx-scanner-platform">
+                <span></span>
+            </div>
+
+            <div class="uplx-scanner-state">
+                <span class="uplx-live-dot"></span>
+                AWAITING FILE
+            </div>
+
+        </div>
+
+        <aside class="uplx-hero__engine" aria-label="AI analysis engine information">
+
+            <div class="uplx-engine-score">
+
+                <header>
+                    <div>
+                        <small>ENGINE READINESS</small>
+                        <strong>Analysis Core</strong>
+                    </div>
+
+                    <i class="fa-solid fa-microchip"></i>
+                </header>
+
+                <div
+                    class="uplx-engine-score__gauge"
+                    id="uploadEngineGauge"
+                    data-score="100"
+                    role="img"
+                    aria-label="Analysis engine readiness 100 percent"
+                >
+                    <div>
+                        <strong>100</strong>
+                        <span>% READY</span>
+                    </div>
+                </div>
+
+                <footer>
+                    <span class="uplx-status-chip uplx-status-chip--safe">
+                        Operational
+                    </span>
+
+                    <small>
+                        Core analysis services are available.
+                    </small>
+                </footer>
+
+            </div>
+
+            <div class="uplx-engine-services">
+
+                <article>
+                    <span class="uplx-engine-services__icon">
+                        <i class="fa-solid fa-brain"></i>
+                    </span>
+
+                    <div>
+                        <small>AI MODEL</small>
+                        <strong>XGBoost</strong>
+                    </div>
+
+                    <span class="uplx-service-state">
+                        Online
+                    </span>
+                </article>
+
+                <article>
+                    <span class="uplx-engine-services__icon">
+                        <i class="fa-solid fa-wave-square"></i>
+                    </span>
+
+                    <div>
+                        <small>FEATURE ENGINE</small>
+                        <strong>Static Extractor</strong>
+                    </div>
+
+                    <span class="uplx-service-state">
+                        Ready
+                    </span>
+                </article>
+
+                <article>
+                    <span class="uplx-engine-services__icon">
+                        <i class="fa-solid fa-database"></i>
+                    </span>
+
+                    <div>
+                        <small>STORAGE</small>
+                        <strong>Threat Database</strong>
+                    </div>
+
+                    <span class="uplx-service-state">
+                        Connected
+                    </span>
+                </article>
+
+            </div>
+
+        </aside>
+
+    </section>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <section class="uplx-alert-stack" aria-label="Upload messages">
+                {% for category, message in messages %}
+                    <article
+                        class="uplx-alert uplx-alert--{{ category|default('info')|e }}"
+                        role="{% if category in ['danger', 'error'] %}alert{% else %}status{% endif %}"
+                        data-server-alert
+                    >
+                        <span class="uplx-alert__icon">
+                            {% if category in ['success'] %}
+                                <i class="fa-solid fa-circle-check"></i>
+                            {% elif category in ['warning'] %}
+                                <i class="fa-solid fa-triangle-exclamation"></i>
+                            {% elif category in ['danger', 'error'] %}
+                                <i class="fa-solid fa-circle-xmark"></i>
+                            {% else %}
+                                <i class="fa-solid fa-circle-info"></i>
+                            {% endif %}
+                        </span>
+
+                        <div>
+                            <strong>
+                                {% if category == 'success' %}
+                                    Upload completed
+                                {% elif category in ['danger', 'error'] %}
+                                    Upload failed
+                                {% elif category == 'warning' %}
+                                    Attention required
+                                {% else %}
+                                    File analysis notice
+                                {% endif %}
+                            </strong>
+                            <p>{{ message }}</p>
+                        </div>
+
+                        <button
+                            type="button"
+                            aria-label="Dismiss message"
+                            data-dismiss-server-alert
+                        >
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </article>
+                {% endfor %}
+            </section>
+        {% endif %}
+    {% endwith %}
+
+    <section class="uplx-workspace" aria-labelledby="uploadWorkspaceTitle">
+
+        <article class="uplx-panel uplx-panel--upload">
+
+            <header class="uplx-panel__header">
+
+                <div class="uplx-panel__identity">
+                    <span class="uplx-panel__icon">
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                    </span>
+
+                    <div>
+                        <p class="uplx-eyebrow">SECURE SUBMISSION</p>
+                        <h2 id="uploadWorkspaceTitle">
+                            Select a file for AI analysis
+                        </h2>
                         <p>
+                            One file can be analysed per submission.
+                        </p>
+                    </div>
+                </div>
 
-                            Supported:
-                            EXE • DLL • PDF • DOC • DOCX • XLS • XLSX • ZIP • Png •etc
+                <div class="uplx-panel__status">
+                    <span class="uplx-live-dot"></span>
+                    READY FOR INPUT
+                </div>
 
+            </header>
+
+            <form
+                class="uplx-upload-form"
+                id="uploadScanForm"
+                action="{{ url_for('upload') }}"
+                method="POST"
+                enctype="multipart/form-data"
+                novalidate
+            >
+
+                <div
+                    class="uplx-dropzone"
+                    id="uploadDropzone"
+                    role="button"
+                    tabindex="0"
+                    aria-labelledby="uploadDropzoneTitle"
+                    aria-describedby="uploadDropzoneDescription uploadFileRules"
+                    data-upload-state="empty"
+                >
+
+                    <input
+                        class="uplx-file-input"
+                        type="file"
+                        name="file"
+                        id="fileInput"
+                        required
+                        hidden
+                    >
+
+                    <div class="uplx-dropzone__empty" id="uploadEmptyState">
+
+                        <div class="uplx-dropzone__visual">
+                            <span class="uplx-dropzone__orbit uplx-dropzone__orbit--one"></span>
+                            <span class="uplx-dropzone__orbit uplx-dropzone__orbit--two"></span>
+
+                            <div class="uplx-dropzone__icon">
+                                <i class="fa-solid fa-cloud-arrow-up"></i>
+                            </div>
+
+                            <span class="uplx-dropzone__scan"></span>
+                        </div>
+
+                        <p class="uplx-dropzone__eyebrow">
+                            ENCRYPTED UPLOAD CHANNEL
                         </p>
 
-                        <input
-                            type="file"
-                            name="file"
-                            id="fileInput"
-                            required>
+                        <h3 id="uploadDropzoneTitle">
+                            Drag and drop a file here
+                        </h3>
 
-                        <div id="selectedFileName">
-                            No file selected
+                        <p id="uploadDropzoneDescription">
+                            or select a local file using the secure browser.
+                        </p>
+
+                        <button
+                            class="uplx-select-file-button"
+                            id="browseFileButton"
+                            type="button"
+                        >
+                            <i class="fa-solid fa-folder-open"></i>
+                            Browse local files
+                        </button>
+
+                        <div class="uplx-dropzone__rules" id="uploadFileRules">
+                            <span>
+                                <i class="fa-solid fa-file"></i>
+                                Single file
+                            </span>
+
+                            <span>
+                                <i class="fa-solid fa-shield-halved"></i>
+                                Server validated
+                            </span>
+
+                            <span>
+                                <i class="fa-solid fa-lock"></i>
+                                Secure processing
+                            </span>
                         </div>
 
                     </div>
 
-                    <br>
+                    <div class="uplx-selected-file" id="uploadSelectedState" hidden>
+
+                        <div class="uplx-selected-file__visual">
+                            <span class="uplx-selected-file__ring uplx-selected-file__ring--one"></span>
+                            <span class="uplx-selected-file__ring uplx-selected-file__ring--two"></span>
+
+                            <div class="uplx-selected-file__icon" id="selectedFileIcon">
+                                <i class="fa-solid fa-file-shield"></i>
+                            </div>
+
+                            <span class="uplx-selected-file__scan"></span>
+                        </div>
+
+                        <div class="uplx-selected-file__identity">
+
+                            <p class="uplx-eyebrow">
+                                FILE READY FOR VALIDATION
+                            </p>
+
+                            <h3 id="selectedFileName" title="No file selected">
+                                No file selected
+                            </h3>
+
+                            <div class="uplx-selected-file__meta">
+                                <span>
+                                    <i class="fa-solid fa-weight-hanging"></i>
+                                    <strong id="fileSize">—</strong>
+                                </span>
+
+                                <span>
+                                    <i class="fa-solid fa-file-code"></i>
+                                    <strong id="selectedFileType">—</strong>
+                                </span>
+
+                                <span>
+                                    <i class="fa-solid fa-calendar"></i>
+                                    <strong id="selectedFileModified">—</strong>
+                                </span>
+                            </div>
+
+                        </div>
+
+                        <div class="uplx-selected-file__controls">
+                            <button
+                                class="uplx-file-action"
+                                id="replaceSelectedFile"
+                                type="button"
+                            >
+                                <i class="fa-solid fa-rotate"></i>
+                                Replace
+                            </button>
+
+                            <button
+                                class="uplx-file-action uplx-file-action--danger"
+                                id="removeSelectedFile"
+                                type="button"
+                            >
+                                <i class="fa-solid fa-trash"></i>
+                                Remove
+                            </button>
+                        </div>
+
+                    </div>
+
+                    <span class="uplx-dropzone__corner uplx-dropzone__corner--top-left" aria-hidden="true"></span>
+                    <span class="uplx-dropzone__corner uplx-dropzone__corner--top-right" aria-hidden="true"></span>
+                    <span class="uplx-dropzone__corner uplx-dropzone__corner--bottom-left" aria-hidden="true"></span>
+                    <span class="uplx-dropzone__corner uplx-dropzone__corner--bottom-right" aria-hidden="true"></span>
+
+                </div>
+
+                <div class="uplx-compatibility-values" aria-hidden="true">
+                    <span id="fileName">No file selected</span>
+                </div>
+
+                <div class="uplx-file-intelligence" id="fileIntelligencePreview" hidden>
+
+                    <header class="uplx-file-intelligence__header">
+
+                        <div>
+                            <p class="uplx-eyebrow">
+                                PRE-SCAN FILE INTELLIGENCE
+                            </p>
+
+                            <h3>
+                                Local metadata inspection
+                            </h3>
+                        </div>
+
+                        <span class="uplx-status-chip" id="localValidationState">
+                            Pending
+                        </span>
+
+                    </header>
+
+                    <div class="uplx-file-intelligence__grid">
+
+                        <article>
+                            <span>
+                                <i class="fa-solid fa-signature"></i>
+                            </span>
+
+                            <div>
+                                <small>FILE NAME</small>
+                                <strong id="intelligenceFileName">—</strong>
+                            </div>
+                        </article>
+
+                        <article>
+                            <span>
+                                <i class="fa-solid fa-file-code"></i>
+                            </span>
+
+                            <div>
+                                <small>EXTENSION</small>
+                                <strong id="intelligenceExtension">—</strong>
+                            </div>
+                        </article>
+
+                        <article>
+                            <span>
+                                <i class="fa-solid fa-weight-scale"></i>
+                            </span>
+
+                            <div>
+                                <small>FILE SIZE</small>
+                                <strong id="intelligenceFileSize">—</strong>
+                            </div>
+                        </article>
+
+                        <article>
+                            <span>
+                                <i class="fa-solid fa-fingerprint"></i>
+                            </span>
+
+                            <div>
+                                <small>LOCAL FINGERPRINT</small>
+                                <strong id="intelligenceFingerprint">
+                                    Generated after selection
+                                </strong>
+                            </div>
+                        </article>
+
+                    </div>
+
+                </div>
+
+                <div class="uplx-validation" id="uploadValidationPanel">
+
+                    <header>
+                        <div>
+                            <p class="uplx-eyebrow">
+                                SUBMISSION READINESS
+                            </p>
+
+                            <h3>
+                                Security validation checklist
+                            </h3>
+                        </div>
+
+                        <span id="validationSummary">
+                            Waiting for file
+                        </span>
+                    </header>
+
+                    <div class="uplx-validation__grid">
+
+                        <article class="uplx-validation-item" data-validation="file-selected" data-state="pending">
+                            <span class="uplx-validation-item__icon">
+                                <i class="fa-solid fa-file-circle-check"></i>
+                            </span>
+
+                            <div>
+                                <strong>File selected</strong>
+                                <small>A local file must be attached.</small>
+                            </div>
+
+                            <span class="uplx-validation-item__state">
+                                Pending
+                            </span>
+                        </article>
+
+                        <article class="uplx-validation-item" data-validation="file-name" data-state="pending">
+                            <span class="uplx-validation-item__icon">
+                                <i class="fa-solid fa-font"></i>
+                            </span>
+
+                            <div>
+                                <strong>File identity</strong>
+                                <small>Filename is checked before submission.</small>
+                            </div>
+
+                            <span class="uplx-validation-item__state">
+                                Pending
+                            </span>
+                        </article>
+
+                        <article class="uplx-validation-item" data-validation="file-size" data-state="pending">
+                            <span class="uplx-validation-item__icon">
+                                <i class="fa-solid fa-weight-hanging"></i>
+                            </span>
+
+                            <div>
+                                <strong>File size</strong>
+                                <small>Size is displayed for analyst review.</small>
+                            </div>
+
+                            <span class="uplx-validation-item__state">
+                                Pending
+                            </span>
+                        </article>
+
+                        <article class="uplx-validation-item" data-validation="file-type" data-state="pending">
+                            <span class="uplx-validation-item__icon">
+                                <i class="fa-solid fa-file-shield"></i>
+                            </span>
+
+                            <div>
+                                <strong>File type</strong>
+                                <small>Final acceptance is verified by the server.</small>
+                            </div>
+
+                            <span class="uplx-validation-item__state">
+                                Pending
+                            </span>
+                        </article>
+
+                    </div>
+
+                </div>
+
+                <label class="uplx-analysis-consent">
+
+                    <input
+                        type="checkbox"
+                        id="analysisConsent"
+                        required
+                    >
+
+                    <span class="uplx-analysis-consent__control">
+                        <i class="fa-solid fa-check"></i>
+                    </span>
+
+                    <span class="uplx-analysis-consent__content">
+                        <strong>
+                            I authorise this file to be submitted for security analysis.
+                        </strong>
+
+                        <small>
+                            The file will be processed by the configured backend,
+                            feature-extraction workflow and AI classification model.
+                        </small>
+                    </span>
+
+                </label>
+
+                <div class="uplx-submit-area">
+
+                    <div class="uplx-submit-area__security">
+                        <span>
+                            <i class="fa-solid fa-lock"></i>
+                        </span>
+
+                        <div>
+                            <strong>Secure analysis submission</strong>
+                            <small>
+                                Final file validation occurs on the server.
+                            </small>
+                        </div>
+                    </div>
 
                     <button
+                        class="uplx-submit-button"
+                        id="scanFileButton"
                         type="submit"
-                        class="primary-btn">
+                        disabled
+                    >
+                        <span class="uplx-submit-button__idle">
+                            <i class="fa-solid fa-magnifying-glass-chart"></i>
 
-                        <i class="fa-solid fa-magnifying-glass"></i>
+                            <span>
+                                <strong>Analyse Selected File</strong>
+                                <small>Start AI threat assessment</small>
+                            </span>
 
-                        Scan File
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </span>
 
+                        <span class="uplx-submit-button__loading" aria-hidden="true">
+                            <i class="fa-solid fa-spinner fa-spin"></i>
+
+                            <span>
+                                <strong>Preparing secure upload</strong>
+                                <small id="submitProgressText">
+                                    Validating file
+                                </small>
+                            </span>
+                        </span>
                     </button>
 
-                </form>
+                </div>
 
+                <div
+                    class="uplx-upload-progress"
+                    id="uploadProgressPanel"
+                    hidden
+                    aria-live="polite"
+                >
+
+                    <div class="uplx-upload-progress__header">
+                        <div>
+                            <p class="uplx-eyebrow">
+                                SECURE TRANSFER
+                            </p>
+
+                            <h3 id="uploadProgressTitle">
+                                Preparing file submission
+                            </h3>
+                        </div>
+
+                        <strong id="uploadProgressPercentage">
+                            0%
+                        </strong>
+                    </div>
+
+                    <div
+                        class="uplx-upload-progress__track"
+                        role="progressbar"
+                        aria-label="File upload progress"
+                        aria-valuemin="0"
+                        aria-valuemax="100"
+                        aria-valuenow="0"
+                        id="uploadProgressTrack"
+                    >
+                        <span id="progressBar"></span>
+                    </div>
+
+                    <div class="uplx-upload-progress__details">
+                        <span id="uploadProgressStatus">
+                            Initialising secure transfer
+                        </span>
+
+                        <span id="uploadProgressSpeed">
+                            Waiting
+                        </span>
+                    </div>
+
+                </div>
+
+            </form>
+
+        </article>
+
+        <aside class="uplx-side-column">
+
+            <article class="uplx-panel uplx-panel--pipeline">
+
+                <header class="uplx-panel__header">
+
+                    <div class="uplx-panel__identity">
+                        <span class="uplx-panel__icon">
+                            <i class="fa-solid fa-diagram-project"></i>
+                        </span>
+
+                        <div>
+                            <p class="uplx-eyebrow">
+                                ANALYSIS WORKFLOW
+                            </p>
+
+                            <h2>
+                                Threat detection pipeline
+                            </h2>
+
+                            <p>
+                                Your backend processes the file in structured stages.
+                            </p>
+                        </div>
+                    </div>
+
+                </header>
+
+                <div class="uplx-pipeline">
+
+                    <article class="uplx-pipeline-step is-active" data-pipeline-step="1">
+                        <span class="uplx-pipeline-step__number">01</span>
+                        <span class="uplx-pipeline-step__icon">
+                            <i class="fa-solid fa-cloud-arrow-up"></i>
+                        </span>
+
+                        <div>
+                            <strong>Secure Upload</strong>
+                            <small>File received by Flask</small>
+                        </div>
+
+                        <span class="uplx-pipeline-step__state">
+                            Ready
+                        </span>
+                    </article>
+
+                    <article class="uplx-pipeline-step" data-pipeline-step="2">
+                        <span class="uplx-pipeline-step__number">02</span>
+                        <span class="uplx-pipeline-step__icon">
+                            <i class="fa-solid fa-fingerprint"></i>
+                        </span>
+
+                        <div>
+                            <strong>Feature Extraction</strong>
+                            <small>Static attributes prepared</small>
+                        </div>
+
+                        <span class="uplx-pipeline-step__state">
+                            Standby
+                        </span>
+                    </article>
+
+                    <article class="uplx-pipeline-step" data-pipeline-step="3">
+                        <span class="uplx-pipeline-step__number">03</span>
+                        <span class="uplx-pipeline-step__icon">
+                            <i class="fa-solid fa-brain"></i>
+                        </span>
+
+                        <div>
+                            <strong>AI Inference</strong>
+                            <small>XGBoost classification</small>
+                        </div>
+
+                        <span class="uplx-pipeline-step__state">
+                            Standby
+                        </span>
+                    </article>
+
+                    <article class="uplx-pipeline-step" data-pipeline-step="4">
+                        <span class="uplx-pipeline-step__number">04</span>
+                        <span class="uplx-pipeline-step__icon">
+                            <i class="fa-solid fa-gauge-high"></i>
+                        </span>
+
+                        <div>
+                            <strong>Risk Assessment</strong>
+                            <small>Confidence and severity</small>
+                        </div>
+
+                        <span class="uplx-pipeline-step__state">
+                            Standby
+                        </span>
+                    </article>
+
+                    <article class="uplx-pipeline-step" data-pipeline-step="5">
+                        <span class="uplx-pipeline-step__number">05</span>
+                        <span class="uplx-pipeline-step__icon">
+                            <i class="fa-solid fa-database"></i>
+                        </span>
+
+                        <div>
+                            <strong>History Record</strong>
+                            <small>Result stored for review</small>
+                        </div>
+
+                        <span class="uplx-pipeline-step__state">
+                            Standby
+                        </span>
+                    </article>
+
+                </div>
+
+            </article>
+
+            <article class="uplx-panel uplx-panel--formats">
+
+                <header class="uplx-panel__header">
+
+                    <div class="uplx-panel__identity">
+                        <span class="uplx-panel__icon">
+                            <i class="fa-solid fa-file-circle-check"></i>
+                        </span>
+
+                        <div>
+                            <p class="uplx-eyebrow">
+                                FORMAT GUIDANCE
+                            </p>
+
+                            <h2>
+                                Common file categories
+                            </h2>
+
+                            <p>
+                                Final acceptance depends on backend validation.
+                            </p>
+                        </div>
+                    </div>
+
+                    <button
+                        class="uplx-panel__action"
+                        id="openFormatGuide"
+                        type="button"
+                        aria-label="Open detailed file format guide"
+                        aria-haspopup="dialog"
+                        aria-controls="formatGuideModal"
+                    >
+                        <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                    </button>
+
+                </header>
+
+                <div class="uplx-format-grid">
+
+                    <article>
+                        <span>
+                            <i class="fa-solid fa-gears"></i>
+                        </span>
+
+                        <div>
+                            <strong>Executables</strong>
+                            <small>EXE, DLL</small>
+                        </div>
+                    </article>
+
+                    <article>
+                        <span>
+                            <i class="fa-solid fa-file-pdf"></i>
+                        </span>
+
+                        <div>
+                            <strong>Documents</strong>
+                            <small>PDF, DOC, DOCX</small>
+                        </div>
+                    </article>
+
+                    <article>
+                        <span>
+                            <i class="fa-solid fa-file-excel"></i>
+                        </span>
+
+                        <div>
+                            <strong>Spreadsheets</strong>
+                            <small>XLS, XLSX, CSV</small>
+                        </div>
+                    </article>
+
+                    <article>
+                        <span>
+                            <i class="fa-solid fa-file-zipper"></i>
+                        </span>
+
+                        <div>
+                            <strong>Archives</strong>
+                            <small>ZIP and packaged files</small>
+                        </div>
+                    </article>
+
+                    <article>
+                        <span>
+                            <i class="fa-solid fa-image"></i>
+                        </span>
+
+                        <div>
+                            <strong>Images</strong>
+                            <small>PNG, JPG, JPEG</small>
+                        </div>
+                    </article>
+
+                    <article>
+                        <span>
+                            <i class="fa-solid fa-code"></i>
+                        </span>
+
+                        <div>
+                            <strong>Source Files</strong>
+                            <small>PY, JS, TXT and logs</small>
+                        </div>
+                    </article>
+
+                </div>
+
+                <div class="uplx-format-note">
+                    <i class="fa-solid fa-circle-info"></i>
+
+                    <p>
+                        The browser displays file metadata only. Your Flask
+                        route remains responsible for file-size limits,
+                        allowed extensions and secure storage.
+                    </p>
+                </div>
+
+            </article>
+
+            <article class="uplx-panel uplx-panel--policy">
+
+                <header class="uplx-panel__header">
+
+                    <div class="uplx-panel__identity">
+                        <span class="uplx-panel__icon">
+                            <i class="fa-solid fa-user-shield"></i>
+                        </span>
+
+                        <div>
+                            <p class="uplx-eyebrow">
+                                SAFE HANDLING
+                            </p>
+
+                            <h2>
+                                Analyst submission policy
+                            </h2>
+
+                            <p>
+                                Review these safeguards before uploading.
+                            </p>
+                        </div>
+                    </div>
+
+                </header>
+
+                <div class="uplx-policy-list">
+
+                    <article>
+                        <span>
+                            <i class="fa-solid fa-circle-check"></i>
+                        </span>
+
+                        <div>
+                            <strong>Use authorised files</strong>
+                            <small>
+                                Submit only files you are permitted to analyse.
+                            </small>
+                        </div>
+                    </article>
+
+                    <article>
+                        <span>
+                            <i class="fa-solid fa-circle-check"></i>
+                        </span>
+
+                        <div>
+                            <strong>Avoid personal secrets</strong>
+                            <small>
+                                Do not upload passwords or private credentials.
+                            </small>
+                        </div>
+                    </article>
+
+                    <article>
+                        <span>
+                            <i class="fa-solid fa-circle-check"></i>
+                        </span>
+
+                        <div>
+                            <strong>Review high-risk results</strong>
+                            <small>
+                                AI classifications support, not replace,
+                                analyst judgement.
+                            </small>
+                        </div>
+                    </article>
+
+                </div>
+
+                <button
+                    class="uplx-policy-button"
+                    id="openSecurityPolicy"
+                    type="button"
+                    aria-haspopup="dialog"
+                    aria-controls="securityPolicyModal"
+                >
+                    <i class="fa-solid fa-book-open"></i>
+                    View secure handling guidance
+                </button>
+
+            </article>
+
+        </aside>
+
+    </section>
+
+    <section class="uplx-insights" aria-labelledby="uploadInsightsTitle">
+
+        <header class="uplx-section-header">
+
+            <div>
+                <p class="uplx-eyebrow">
+                    WORKSPACE INTELLIGENCE
+                </p>
+
+                <h2 id="uploadInsightsTitle">
+                    Analysis environment overview
+                </h2>
             </div>
+
+            <span>
+                <span class="uplx-live-dot"></span>
+                Live interface telemetry
+            </span>
+
+        </header>
+
+        <div class="uplx-insight-grid">
+
+            <article class="uplx-insight-card">
+                <span class="uplx-insight-card__icon">
+                    <i class="fa-solid fa-bolt"></i>
+                </span>
+
+                <div>
+                    <small>WORKFLOW</small>
+                    <strong>Single-file analysis</strong>
+                    <p>
+                        Designed to preserve the current Flask upload contract.
+                    </p>
+                </div>
+            </article>
+
+            <article class="uplx-insight-card">
+                <span class="uplx-insight-card__icon">
+                    <i class="fa-solid fa-brain"></i>
+                </span>
+
+                <div>
+                    <small>CLASSIFIER</small>
+                    <strong>XGBoost model</strong>
+                    <p>
+                        Uses the existing prediction process configured in the backend.
+                    </p>
+                </div>
+            </article>
+
+            <article class="uplx-insight-card">
+                <span class="uplx-insight-card__icon">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                </span>
+
+                <div>
+                    <small>TRACEABILITY</small>
+                    <strong>Scan history</strong>
+                    <p>
+                        Completed analysis records remain available for review.
+                    </p>
+                </div>
+
+                <a href="{{ url_for('history') }}">
+                    Open history
+                    <i class="fa-solid fa-arrow-right"></i>
+                </a>
+            </article>
+
+            <article class="uplx-insight-card">
+                <span class="uplx-insight-card__icon">
+                    <i class="fa-solid fa-chart-line"></i>
+                </span>
+
+                <div>
+                    <small>VISIBILITY</small>
+                    <strong>Dashboard analytics</strong>
+                    <p>
+                        Scan results contribute to the security operations dashboard.
+                    </p>
+                </div>
+
+                <a href="{{ url_for('dashboard') }}">
+                    Open dashboard
+                    <i class="fa-solid fa-arrow-right"></i>
+                </a>
+            </article>
 
         </div>
 
-        <!-- RIGHT -->
+    </section>
 
-        <div class="right-column">
+    <footer class="uplx-footer">
 
-            <div class="chart-card">
+        <div>
+            <span class="uplx-live-dot"></span>
+            <strong>AI Threat Detection Platform</strong>
+            <span>Secure File Analysis Workspace</span>
+        </div>
 
-                <div class="card-header">
+        <div>
+            <span>
+                Model:
+                <strong>XGBoost</strong>
+            </span>
 
-                    <h3>
+            <span class="uplx-footer__divider"></span>
 
-                        <i class="fa-solid fa-circle-info"></i>
+            <span>
+                Session:
+                <strong id="uploadSessionIdentifier">Generating</strong>
+            </span>
 
-                        AI Engine
+            <span class="uplx-footer__divider"></span>
 
-                    </h3>
+            <span id="uploadCopyrightYear">2026</span>
+        </div>
 
+    </footer>
+
+    <div
+        class="uplx-modal"
+        id="uploadHelpModal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="uploadHelpTitle"
+        aria-hidden="true"
+    >
+
+        <div class="uplx-modal__backdrop" data-close-upload-help></div>
+
+        <div class="uplx-modal__dialog uplx-modal__dialog--help">
+
+            <header class="uplx-modal__header">
+
+                <div>
+                    <p class="uplx-eyebrow">
+                        WORKSPACE HELP
+                    </p>
+
+                    <h2 id="uploadHelpTitle">
+                        How to analyse a file
+                    </h2>
                 </div>
 
-                <div class="status-grid">
+                <button
+                    id="closeUploadHelp"
+                    type="button"
+                    aria-label="Close upload help"
+                >
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
 
-                    <div class="status-item">
+            </header>
 
-                        <span>AI Model</span>
+            <div class="uplx-help-steps">
 
-                        <span class="online">
+                <article>
+                    <span>01</span>
 
-                            ONLINE
-
-                        </span>
-
+                    <div>
+                        <strong>Select an authorised file</strong>
+                        <p>
+                            Drag a file into the dropzone or use the browser button.
+                        </p>
                     </div>
+                </article>
 
-                    <div class="status-item">
+                <article>
+                    <span>02</span>
 
-                        <span>XGBoost</span>
-
-                        <span class="online">
-
-                            ACTIVE
-
-                        </span>
-
+                    <div>
+                        <strong>Review local metadata</strong>
+                        <p>
+                            Confirm the filename, type, size and modified date.
+                        </p>
                     </div>
+                </article>
 
-                    <div class="status-item">
+                <article>
+                    <span>03</span>
 
-                        <span>Feature Extraction</span>
-
-                        <span class="online">
-
-                            READY
-
-                        </span>
-
+                    <div>
+                        <strong>Authorise analysis</strong>
+                        <p>
+                            Confirm that you are permitted to submit the selected file.
+                        </p>
                     </div>
+                </article>
 
-                    <div class="status-item">
+                <article>
+                    <span>04</span>
 
-                        <span>Prediction</span>
-
-                        <span class="online">
-
-                            AVAILABLE
-
-                        </span>
-
+                    <div>
+                        <strong>Start AI analysis</strong>
+                        <p>
+                            The form sends the file to the existing Flask upload route.
+                        </p>
                     </div>
-
-                </div>
+                </article>
 
             </div>
 
-            <div class="chart-card">
+            <footer class="uplx-modal__footer">
+                <button
+                    class="uplx-modal__secondary"
+                    id="dismissUploadHelp"
+                    type="button"
+                >
+                    Close
+                </button>
 
-                <div class="card-header">
+                <button
+                    class="uplx-modal__primary"
+                    id="helpChooseFile"
+                    type="button"
+                >
+                    <i class="fa-solid fa-folder-open"></i>
+                    Choose a file
+                </button>
+            </footer>
 
-                    <h3>
+        </div>
 
-                        <i class="fa-solid fa-file-shield"></i>
+    </div>
 
-                        Supported Files
+    <div
+        class="uplx-modal"
+        id="formatGuideModal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="formatGuideTitle"
+        aria-hidden="true"
+    >
 
-                    </h3>
+        <div class="uplx-modal__backdrop" data-close-format-guide></div>
 
+        <div class="uplx-modal__dialog uplx-modal__dialog--wide">
+
+            <header class="uplx-modal__header">
+
+                <div>
+                    <p class="uplx-eyebrow">
+                        FORMAT REFERENCE
+                    </p>
+
+                    <h2 id="formatGuideTitle">
+                        Common file categories
+                    </h2>
                 </div>
 
-                <table class="recent-table">
+                <button
+                    id="closeFormatGuide"
+                    type="button"
+                    aria-label="Close format guide"
+                >
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
 
-                    <tr>
+            </header>
 
-                        <td>EXE</td>
+            <div class="uplx-format-guide">
 
-                        <td>✔</td>
+                <article>
+                    <span>
+                        <i class="fa-solid fa-gears"></i>
+                    </span>
 
-                    </tr>
+                    <div>
+                        <strong>Executable Files</strong>
+                        <p>
+                            EXE and DLL files may contain program instructions
+                            and require careful handling.
+                        </p>
+                    </div>
 
-                    <tr>
+                    <small>EXE · DLL</small>
+                </article>
 
-                        <td>DLL</td>
+                <article>
+                    <span>
+                        <i class="fa-solid fa-file-lines"></i>
+                    </span>
 
-                        <td>✔</td>
+                    <div>
+                        <strong>Business Documents</strong>
+                        <p>
+                            Documents can contain embedded objects, scripts or macros.
+                        </p>
+                    </div>
 
-                    </tr>
+                    <small>PDF · DOC · DOCX</small>
+                </article>
 
-                    <tr>
+                <article>
+                    <span>
+                        <i class="fa-solid fa-table"></i>
+                    </span>
 
-                        <td>PDF</td>
+                    <div>
+                        <strong>Data and Spreadsheet Files</strong>
+                        <p>
+                            Spreadsheet and CSV files may contain formulas,
+                            links or structured records.
+                        </p>
+                    </div>
 
-                        <td>✔</td>
+                    <small>XLS · XLSX · CSV</small>
+                </article>
 
-                    </tr>
+                <article>
+                    <span>
+                        <i class="fa-solid fa-box-archive"></i>
+                    </span>
 
-                    <tr>
+                    <div>
+                        <strong>Archive Files</strong>
+                        <p>
+                            Archives may contain multiple nested files and
+                            require backend extraction controls.
+                        </p>
+                    </div>
 
-                        <td>DOC / DOCX</td>
+                    <small>ZIP</small>
+                </article>
 
-                        <td>✔</td>
+                <article>
+                    <span>
+                        <i class="fa-solid fa-image"></i>
+                    </span>
 
-                    </tr>
+                    <div>
+                        <strong>Image Files</strong>
+                        <p>
+                            Images contain metadata and may use malformed or
+                            unusual internal structures.
+                        </p>
+                    </div>
 
-                    <tr>
+                    <small>PNG · JPG · JPEG</small>
+                </article>
 
-                        <td>XLS / XLSX</td>
+                <article>
+                    <span>
+                        <i class="fa-solid fa-code"></i>
+                    </span>
 
-                        <td>✔</td>
+                    <div>
+                        <strong>Source and Text Files</strong>
+                        <p>
+                            Scripts, code and logs can provide behavioural
+                            or indicator-based security evidence.
+                        </p>
+                    </div>
 
-                    </tr>
+                    <small>PY · JS · TXT · LOG</small>
+                </article>
 
-                    <tr>
+            </div>
 
-                        <td>ZIP</td>
+            <div class="uplx-modal__notice">
+                <i class="fa-solid fa-circle-info"></i>
 
-                        <td>✔</td>
+                <p>
+                    This interface does not change the backend upload policy.
+                    The Flask route remains the final authority for accepted
+                    extensions, maximum size and processing behaviour.
+                </p>
+            </div>
 
-                    </tr>
+            <footer class="uplx-modal__footer">
+                <button
+                    class="uplx-modal__primary"
+                    id="acknowledgeFormatGuide"
+                    type="button"
+                >
+                    Understood
+                </button>
+            </footer>
 
-                </table>
+        </div>
+
+    </div>
+
+    <div
+        class="uplx-modal"
+        id="securityPolicyModal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="securityPolicyTitle"
+        aria-hidden="true"
+    >
+
+        <div class="uplx-modal__backdrop" data-close-security-policy></div>
+
+        <div class="uplx-modal__dialog">
+
+            <header class="uplx-modal__header">
+
+                <div>
+                    <p class="uplx-eyebrow">
+                        SAFE FILE HANDLING
+                    </p>
+
+                    <h2 id="securityPolicyTitle">
+                        Analyst security guidance
+                    </h2>
+                </div>
+
+                <button
+                    id="closeSecurityPolicy"
+                    type="button"
+                    aria-label="Close security guidance"
+                >
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+
+            </header>
+
+            <div class="uplx-policy-guidance">
+
+                <article>
+                    <span>
+                        <i class="fa-solid fa-user-lock"></i>
+                    </span>
+
+                    <div>
+                        <strong>Authorisation</strong>
+                        <p>
+                            Analyse only files that you own or are explicitly
+                            authorised to inspect.
+                        </p>
+                    </div>
+                </article>
+
+                <article>
+                    <span>
+                        <i class="fa-solid fa-key"></i>
+                    </span>
+
+                    <div>
+                        <strong>Sensitive Information</strong>
+                        <p>
+                            Avoid uploading credentials, private keys,
+                            confidential records or personal secrets.
+                        </p>
+                    </div>
+                </article>
+
+                <article>
+                    <span>
+                        <i class="fa-solid fa-box"></i>
+                    </span>
+
+                    <div>
+                        <strong>Containment</strong>
+                        <p>
+                            Keep suspicious files isolated from production
+                            systems and shared folders.
+                        </p>
+                    </div>
+                </article>
+
+                <article>
+                    <span>
+                        <i class="fa-solid fa-user-shield"></i>
+                    </span>
+
+                    <div>
+                        <strong>Human Review</strong>
+                        <p>
+                            Treat AI predictions as security decision support
+                            rather than absolute proof.
+                        </p>
+                    </div>
+                </article>
+
+            </div>
+
+            <footer class="uplx-modal__footer">
+                <button
+                    class="uplx-modal__primary"
+                    id="acknowledgeSecurityPolicy"
+                    type="button"
+                >
+                    I understand
+                </button>
+            </footer>
+
+        </div>
+
+    </div>
+
+    <div
+        class="uplx-modal"
+        id="uploadConfirmationModal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="uploadConfirmationTitle"
+        aria-hidden="true"
+    >
+
+        <div class="uplx-modal__backdrop" data-cancel-upload-confirmation></div>
+
+        <div class="uplx-modal__dialog uplx-modal__dialog--confirmation">
+
+            <div class="uplx-confirmation-icon">
+                <i class="fa-solid fa-file-shield"></i>
+                <span></span>
+            </div>
+
+            <p class="uplx-eyebrow">
+                CONFIRM SECURE SUBMISSION
+            </p>
+
+            <h2 id="uploadConfirmationTitle">
+                Begin AI file analysis?
+            </h2>
+
+            <p>
+                Review the selected file before sending it to the
+                configured Flask analysis route.
+            </p>
+
+            <dl class="uplx-confirmation-details">
+
+                <div>
+                    <dt>File</dt>
+                    <dd id="confirmationFileName">No file selected</dd>
+                </div>
+
+                <div>
+                    <dt>Size</dt>
+                    <dd id="confirmationFileSize">—</dd>
+                </div>
+
+                <div>
+                    <dt>Analysis Engine</dt>
+                    <dd>XGBoost Threat Classifier</dd>
+                </div>
+
+                <div>
+                    <dt>Submission Type</dt>
+                    <dd>Single secure file upload</dd>
+                </div>
+
+            </dl>
+
+            <div class="uplx-confirmation-actions">
+
+                <button
+                    class="uplx-modal__secondary"
+                    id="cancelUploadConfirmation"
+                    type="button"
+                >
+                    Cancel
+                </button>
+
+                <button
+                    class="uplx-modal__primary"
+                    id="confirmUploadSubmission"
+                    type="button"
+                >
+                    <i class="fa-solid fa-shield-halved"></i>
+                    Confirm and analyse
+                </button>
 
             </div>
 
@@ -267,67 +1839,39 @@
 
     </div>
 
-</div>
-<script>
-document.addEventListener("DOMContentLoaded", function () {
+    <div
+        class="uplx-toast-region"
+        id="uploadToastRegion"
+        aria-live="polite"
+        aria-atomic="true"
+    ></div>
 
-    const canvas = document.getElementById("digitalRain");
+    <div
+        class="uplx-sr-only"
+        id="uploadAccessibilityStatus"
+        role="status"
+        aria-live="polite"
+    ></div>
 
-    if (!canvas) return;
+    <noscript>
+        <div class="uplx-noscript">
+            <i class="fa-solid fa-triangle-exclamation"></i>
 
-    const ctx = canvas.getContext("2d");
-    const hero = canvas.parentElement;
+            <div>
+                <strong>Interactive upload controls are unavailable.</strong>
+                <p>
+                    JavaScript is required for drag-and-drop, file previews
+                    and enhanced validation.
+                </p>
+            </div>
+        </div>
+    </noscript>
 
-    const characters = "010101AISECURITYTHREATSCAN";
-    const fontSize = 16;
+</main>
 
-    let drops = [];
+<script
+    src="{{ url_for('static', filename='js/upload.js') }}"
+    defer
+></script>
 
-    function resizeDigitalRain() {
-
-        canvas.width = hero.clientWidth;
-        canvas.height = hero.clientHeight;
-
-        const columns = Math.floor(canvas.width / fontSize);
-
-        drops = Array.from(
-            { length: columns },
-            () => Math.random() * canvas.height / fontSize
-        );
-    }
-
-    function drawDigitalRain() {
-
-        ctx.fillStyle = "rgba(7, 25, 62, 0.08)";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        ctx.fillStyle = "rgba(30, 215, 255, 0.7)";
-        ctx.font = `${fontSize}px monospace`;
-
-        for (let i = 0; i < drops.length; i++) {
-
-            const character =
-                characters[Math.floor(Math.random() * characters.length)];
-
-            const x = i * fontSize;
-            const y = drops[i] * fontSize;
-
-            ctx.fillText(character, x, y);
-
-            if (y > canvas.height && Math.random() > 0.98) {
-                drops[i] = 0;
-            }
-
-            drops[i] += 0.25;
-        }
-
-        requestAnimationFrame(drawDigitalRain);
-    }
-
-    resizeDigitalRain();
-    drawDigitalRain();
-
-    window.addEventListener("resize", resizeDigitalRain);
-});
-</script>
 {% endblock %}

@@ -364,7 +364,7 @@ def remove_user(id):
 
     delete_user(id)
 
-    return redirect(url_for("users"))
+    return redirect(url_for("users_page"))
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -983,37 +983,415 @@ def internal_error(e):
 @app.route("/chatbot", methods=["POST"])
 def chatbot():
 
-    data=request.get_json()
+    data = request.get_json(silent=True) or {}
+    msg = str(data.get("message", "")).strip().lower()
 
-    print(request.get_json())
+    if not msg:
+        return jsonify({
+            "reply": "Please enter a cybersecurity question."
+        })
 
-    msg=data["message"].lower()
+    def contains(*words):
+        return any(word in msg for word in words)
 
-    if "malware" in msg:
+    # =========================================================
+    # MALWARE
+    # =========================================================
 
-        reply="Malware is software designed to damage or steal information."
+    if contains("malware"):
+        reply = (
+            "Malware is malicious software designed to damage systems, "
+            "steal information, disrupt operations, or gain unauthorized access. "
+            "Common types include viruses, worms, Trojans, ransomware, spyware, "
+            "rootkits and keyloggers. Protection includes updated antivirus software, "
+            "regular patching, secure downloads, firewalls and user awareness."
+        )
 
-    elif "safe" in msg:
+    # =========================================================
+    # RANSOMWARE
+    # =========================================================
 
-        reply="Safe files contain no detected malicious behaviour."
+    elif contains("ransomware"):
+        reply = (
+            "Ransomware is malware that encrypts files or locks a system and then "
+            "demands payment for restoring access. It commonly spreads through phishing "
+            "emails, malicious attachments, compromised websites and vulnerable systems. "
+            "Important defenses include offline backups, software updates, endpoint "
+            "protection, MFA and avoiding suspicious links or attachments."
+        )
 
-    elif "virus" in msg:
+    # =========================================================
+    # PHISHING
+    # =========================================================
 
-        reply="A virus is a malicious program that spreads between files."
+    elif contains("phishing", "spear phishing"):
+        reply = (
+            "Phishing is a social-engineering attack where an attacker pretends to be "
+            "a trusted person or organization to steal passwords, financial information "
+            "or other sensitive data. Warning signs include suspicious links, urgent "
+            "requests, unusual sender addresses and unexpected attachments. Verify the "
+            "sender and use MFA to reduce the risk."
+        )
 
-    elif "phishing" in msg:
+    # =========================================================
+    # SQL INJECTION
+    # =========================================================
 
-        reply="Phishing attempts to steal passwords through fake websites."
+    elif contains("sql injection", "sqli", "database injection"):
+        reply = (
+            "SQL Injection is a web application attack in which malicious SQL input is "
+            "inserted into application fields or requests and reaches a database query. "
+            "A successful attack may expose, modify or delete database information. "
+            "The main defenses are parameterized queries or prepared statements, input "
+            "validation, least-privilege database accounts and secure ORM frameworks."
+        )
 
-    elif "trojan" in msg:
+    # =========================================================
+    # XSS
+    # =========================================================
 
-        reply="A Trojan disguises itself as legitimate software."
+    elif contains("cross site scripting", "cross-site scripting", "xss"):
+        reply = (
+            "Cross-Site Scripting (XSS) occurs when unsafe user-controlled content is "
+            "rendered as executable script in another user's browser. It can be used to "
+            "steal session information or manipulate a webpage. Defenses include output "
+            "encoding, input sanitization and Content Security Policy."
+        )
+
+    # =========================================================
+    # CSRF
+    # =========================================================
+
+    elif contains("csrf", "cross site request forgery"):
+        reply = (
+            "Cross-Site Request Forgery (CSRF) tricks an authenticated user's browser "
+            "into submitting an unwanted request to a website. Common defenses include "
+            "CSRF tokens, SameSite cookies and re-authentication for sensitive actions."
+        )
+
+    # =========================================================
+    # DDOS
+    # =========================================================
+
+    elif contains("ddos", "denial of service", "dos attack"):
+        reply = (
+            "A DDoS attack overwhelms a server, network or application with traffic "
+            "from many distributed systems, making the service unavailable to legitimate "
+            "users. Defenses include rate limiting, traffic filtering, CDN protection, "
+            "load balancing and dedicated DDoS mitigation services."
+        )
+
+    # =========================================================
+    # TROJAN
+    # =========================================================
+
+    elif contains("trojan"):
+        reply = (
+            "A Trojan is malicious software disguised as legitimate software or a useful "
+            "file. Unlike a traditional virus, it normally depends on the user to install "
+            "or execute it. Trojans may steal data, create backdoors or download additional "
+            "malware."
+        )
+
+    # =========================================================
+    # VIRUS
+    # =========================================================
+
+    elif contains("virus"):
+        reply = (
+            "A computer virus is malicious code that attaches itself to a file or program "
+            "and can reproduce when that infected file is executed. Viruses may corrupt "
+            "files, steal information or disrupt system operation."
+        )
+
+    # =========================================================
+    # WORM
+    # =========================================================
+
+    elif contains("worm"):
+        reply = (
+            "A computer worm is self-replicating malware that can spread automatically "
+            "between systems, often through network vulnerabilities. Unlike many viruses, "
+            "worms do not necessarily require a user to run an infected file."
+        )
+
+    # =========================================================
+    # SPYWARE
+    # =========================================================
+
+    elif contains("spyware"):
+        reply = (
+            "Spyware secretly monitors a device or user and collects information such as "
+            "browsing activity, credentials or personal data. It can be reduced through "
+            "trusted software sources, endpoint protection and regular security updates."
+        )
+
+    # =========================================================
+    # KEYLOGGER
+    # =========================================================
+
+    elif contains("keylogger", "key logger"):
+        reply = (
+            "A keylogger records keyboard input and may capture passwords, messages and "
+            "other sensitive information. Keyloggers can be software-based or hardware-based. "
+            "Endpoint protection, MFA and system monitoring help reduce the risk."
+        )
+
+    # =========================================================
+    # ROOTKIT
+    # =========================================================
+
+    elif contains("rootkit"):
+        reply = (
+            "A rootkit is malware designed to maintain privileged access while hiding "
+            "its presence from users and security software. Rootkits can be difficult "
+            "to detect and may require specialized scanning or system reinstallation."
+        )
+
+    # =========================================================
+    # BRUTE FORCE
+    # =========================================================
+
+    elif contains("brute force", "password attack"):
+        reply = (
+            "A brute-force attack repeatedly tries passwords or authentication values "
+            "until the correct one is found. Strong passwords, MFA, account lockouts, "
+            "rate limiting and login monitoring are effective defenses."
+        )
+
+    # =========================================================
+    # FIREWALL
+    # =========================================================
+
+    elif contains("firewall"):
+        reply = (
+            "A firewall monitors and controls network traffic according to security rules. "
+            "It can block unauthorized connections while permitting legitimate traffic. "
+            "Firewalls may operate on individual devices, network gateways or cloud systems."
+        )
+
+    # =========================================================
+    # IDS / IPS
+    # =========================================================
+
+    elif contains("ids", "intrusion detection"):
+        reply = (
+            "An Intrusion Detection System (IDS) monitors network or system activity and "
+            "alerts administrators when suspicious behavior is detected. It normally detects "
+            "and reports activity rather than automatically blocking it."
+        )
+
+    elif contains("ips", "intrusion prevention"):
+        reply = (
+            "An Intrusion Prevention System (IPS) monitors traffic like an IDS but can also "
+            "automatically block or prevent suspicious activity when predefined detection "
+            "rules are triggered."
+        )
+
+    # =========================================================
+    # VPN
+    # =========================================================
+
+    elif contains("vpn", "virtual private network"):
+        reply = (
+            "A VPN creates an encrypted connection between a device and a VPN endpoint, "
+            "helping protect network traffic from interception. It is commonly used for "
+            "secure remote access and for protecting traffic on untrusted networks."
+        )
+
+    # =========================================================
+    # ENCRYPTION
+    # =========================================================
+
+    elif contains("encryption", "encrypt"):
+        reply = (
+            "Encryption converts readable information into ciphertext using a cryptographic "
+            "key. Authorized users can decrypt the information with the appropriate key. "
+            "Encryption protects sensitive data both during transmission and while stored."
+        )
+
+    # =========================================================
+    # HASHING
+    # =========================================================
+
+    elif contains("hashing", "hash function", "sha256", "sha-256"):
+        reply = (
+            "Hashing converts data into a fixed-size digest using a one-way mathematical "
+            "function. Security systems use hashes for integrity checking and secure password "
+            "storage. Unlike encryption, a cryptographic hash is not intended to be decrypted."
+        )
+
+    # =========================================================
+    # MFA
+    # =========================================================
+
+    elif contains("mfa", "multi factor", "multi-factor", "two factor", "2fa"):
+        reply = (
+            "Multi-Factor Authentication requires two or more independent verification "
+            "factors, such as a password plus an authenticator application or security key. "
+            "It greatly reduces the impact of stolen passwords."
+        )
+
+    # =========================================================
+    # ZERO DAY
+    # =========================================================
+
+    elif contains("zero day", "zero-day"):
+        reply = (
+            "A zero-day vulnerability is a security flaw for which an effective vendor patch "
+            "is not yet available when attackers become capable of exploiting it. Layered "
+            "security controls and behavioral monitoring help reduce exposure."
+        )
+
+    # =========================================================
+    # CVE
+    # =========================================================
+
+    elif contains("cve"):
+        reply = (
+            "CVE stands for Common Vulnerabilities and Exposures. It provides standardized "
+            "identifiers for publicly disclosed cybersecurity vulnerabilities so that "
+            "vendors, researchers and security tools can refer to the same vulnerability "
+            "consistently."
+        )
+
+    # =========================================================
+    # DNS
+    # =========================================================
+
+    elif contains("dns"):
+        reply = (
+            "DNS translates human-readable domain names such as example.com into IP "
+            "addresses used by computers. Because DNS is critical to internet communication, "
+            "attackers may target it using spoofing, cache poisoning or DNS-based attacks."
+        )
+
+    # =========================================================
+    # HTTP / HTTPS
+    # =========================================================
+
+    elif contains("https"):
+        reply = (
+            "HTTPS is HTTP protected using TLS encryption. It helps provide confidentiality, "
+            "integrity and server authentication between a browser and website."
+        )
+
+    elif contains("http"):
+        reply = (
+            "HTTP is the protocol used to exchange web content between clients and servers. "
+            "Standard HTTP does not encrypt communication, which is why HTTPS should normally "
+            "be used for secure web traffic."
+        )
+
+    # =========================================================
+    # IP ADDRESS
+    # =========================================================
+
+    elif contains("ip address", "what is ip"):
+        reply = (
+            "An IP address is a numerical identifier assigned to a device on an IP network. "
+            "IPv4 uses 32-bit addresses, while IPv6 uses 128-bit addresses and provides a "
+            "much larger address space."
+        )
+
+    # =========================================================
+    # PORT
+    # =========================================================
+
+    elif contains("port number", "network port", "open port"):
+        reply = (
+            "A network port identifies a particular service or application communicating "
+            "through TCP or UDP. For example, HTTPS commonly uses TCP port 443. Unnecessary "
+            "open ports should be closed to reduce the attack surface."
+        )
+
+    # =========================================================
+    # NETWORK SECURITY
+    # =========================================================
+
+    elif contains("secure my network", "network security"):
+        reply = (
+            "To improve network security, use a firewall, strong Wi-Fi encryption, unique "
+            "passwords, MFA where available, regular software updates, network segmentation, "
+            "endpoint protection and continuous monitoring of suspicious traffic."
+        )
+
+    # =========================================================
+    # SAFE FILE
+    # =========================================================
+
+    elif contains("safe file", "file safe", "clean file"):
+        reply = (
+            "A file classified as safe means the current security analysis did not detect "
+            "known malicious indicators above the system's detection threshold. However, "
+            "no automated scanner can guarantee that a file is completely risk-free."
+        )
+
+    # =========================================================
+    # AI THREAT DETECTION PROJECT
+    # =========================================================
+
+    elif contains("how does scan work", "how does scanning work"):
+        reply = (
+            "CyberShield analyzes an uploaded file by extracting security-relevant features "
+            "and passing them to the machine-learning threat detection model. The resulting "
+            "prediction, confidence information and risk classification are then presented "
+            "through the system interface."
+        )
+
+    elif contains("confidence score"):
+        reply = (
+            "The confidence score represents how strongly the AI model supports its predicted "
+            "classification. A higher confidence indicates stronger model certainty, but it "
+            "should still be interpreted together with the risk level and other security evidence."
+        )
+
+    elif contains("risk level"):
+        reply = (
+            "Risk level summarizes the estimated security severity of a detected threat. "
+            "Higher-risk results should receive faster investigation and stronger response, "
+            "while lower-risk results may require monitoring or additional verification."
+        )
+
+    elif contains("scan history", "history page"):
+        reply = (
+            "The Scan History section stores previous scan results so that security analysis "
+            "can be reviewed over time. It helps compare detections, filenames, risk levels "
+            "and previous security events."
+        )
+
+    elif contains("threat intelligence"):
+        reply = (
+            "Threat intelligence is security information about known or emerging threats, "
+            "including malware, vulnerabilities, indicators of compromise and attacker "
+            "techniques. It helps security teams understand and prioritize potential risks."
+        )
+
+    # =========================================================
+    # GREETINGS
+    # =========================================================
+
+    elif contains("hello", "hi ", "hey", "good morning", "good evening"):
+        reply = (
+            "Hello! I'm CyberShield AI, your cybersecurity assistant. "
+            "You can ask me about malware, ransomware, phishing, SQL Injection, "
+            "network security, vulnerabilities, encryption, scans and other security topics."
+        )
+
+    # =========================================================
+    # FALLBACK
+    # =========================================================
 
     else:
+        reply = (
+            "I don't have a specific stored explanation for that question yet. "
+            "Try asking about malware, ransomware, phishing, SQL Injection, XSS, "
+            "DDoS, firewalls, vulnerabilities, encryption, network security or AI threat scanning."
+        )
 
-        reply="I'm your AI Security Assistant. Ask me about malware, ransomware, phishing, scans, or cyber security."
-
-    return jsonify({"reply":reply})
+    return jsonify({
+        "reply": reply
+    })
 
 
 

@@ -3,55 +3,251 @@
 
 <head>
 
+    <!-- =====================================================
+         BASIC PAGE SETTINGS
+    ====================================================== -->
+
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <meta
+        name="theme-color"
+        content="#08131f"
+    >
 
     <title>AI Threat Detection System</title>
 
-    <!-- Font Awesome -->
-    <link rel="stylesheet"
-        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 
-    <!-- CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/layout.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/navbar.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/upload.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/history.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/result.css') }}">
-    <link rel="stylesheet"
-      href="{{ url_for('static', filename='css/chatbot.css') }}">
+    <!-- =====================================================
+         DETECT THE DASHBOARD PAGE
+    ====================================================== -->
+
+    {% set is_dashboard_page =
+        request.path.rstrip('/') == '/dashboard'
+    %}
+
+
+    <!-- =====================================================
+         FONT AWESOME
+    ====================================================== -->
+
+    <link
+        rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+    >
+
+
+    <!-- =====================================================
+         SHARED CSS
+         Used throughout the complete application
+    ====================================================== -->
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/layout.css') }}"
+    >
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/sidebar.css') }}"
+    >
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/navbar.css') }}"
+    >
+
+
+    <!-- =====================================================
+         EXISTING PAGE CSS
+         These files are kept so other pages continue working
+    ====================================================== -->
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/upload.css') }}"
+    >
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/history.css') }}"
+    >
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/result.css') }}"
+    >
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/chatbot.css') }}"
+    >
+
+
+    <!-- =====================================================
+         ADVANCED DASHBOARD CSS
+
+         This CSS loads only on /dashboard.
+         Therefore, it cannot affect upload, history, result
+         or other application pages.
+    ====================================================== -->
+
+    {% if is_dashboard_page %}
+
+        <link
+            rel="stylesheet"
+            href="{{ url_for('static', filename='css/dashboard.css') }}"
+        >
+
+        <style>
+
+            /*
+             * Dashboard-only layout corrections.
+             * These styles do not affect any other page.
+             */
+
+            body.dashboard-page {
+                margin: 0;
+                padding: 0;
+                overflow-x: hidden;
+            }
+
+            body.dashboard-page .main-content--dashboard {
+                padding-top: 0 !important;
+                margin-top: 0 !important;
+            }
+
+            body.dashboard-page .page-content--dashboard {
+                padding-top: 0 !important;
+                margin-top: 0 !important;
+            }
+
+            body.dashboard-page .page-content--dashboard > .soc-dashboard {
+                margin-top: 0 !important;
+            }
+
+        </style>
+
+    {% endif %}
+
 </head>
 
-<body>
-<canvas id="bgCanvas"></canvas>
-<div class="wrapper">
 
-    <!-- Sidebar -->
-    {% include "sidebar.html" %}
+<body
+    class="{% if is_dashboard_page %}dashboard-page{% else %}standard-page{% endif %}"
+>
 
-    <!-- Main Content -->
-    <div class="main-content">
+    <!-- =====================================================
+         SHARED ANIMATED BACKGROUND
+         Controlled by static/js/background.js
+    ====================================================== -->
 
-        <!-- Navbar -->
-        {% include "navbar.html" %}
+    <canvas
+        id="bgCanvas"
+        aria-hidden="true"
+    ></canvas>
 
-        <!-- Page Content -->
-        <div class="page-content">
 
-            {% block content %}
-            {% endblock %}
+    <!-- =====================================================
+         MAIN APPLICATION WRAPPER
+    ====================================================== -->
+
+    <div class="wrapper">
+
+
+        <!-- =================================================
+             SIDEBAR
+
+             The sidebar remains visible on the dashboard
+             and all other application pages.
+        ================================================== -->
+
+        {% include "sidebar.html" %}
+
+
+        <!-- =================================================
+             MAIN CONTENT AREA
+        ================================================== -->
+
+        <div
+            class="main-content{% if is_dashboard_page %} main-content--dashboard{% endif %}"
+        >
+
+
+            <!-- =============================================
+                 SHARED NAVBAR
+
+                 The old navbar is hidden only on /dashboard
+                 because the advanced dashboard already has
+                 its own command header.
+
+                 The navbar remains available on upload,
+                 history, result and all other pages.
+            ============================================== -->
+
+            {% if not is_dashboard_page %}
+
+                {% include "navbar.html" %}
+
+            {% endif %}
+
+
+            <!-- =============================================
+                 PAGE CONTENT
+            ============================================== -->
+
+            <div
+                class="page-content{% if is_dashboard_page %} page-content--dashboard{% endif %}"
+                id="mainPageContent"
+            >
+
+                {% block content %}
+                {% endblock %}
+
+            </div>
 
         </div>
 
     </div>
 
-</div>
-{% include "chatbot.html" %}
 
-<script src="{{ url_for('static', filename='js/chatbot.js') }}"></script>
-<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
-<script src="{{ url_for('static', filename='js/background.js') }}"></script>
+    <!-- =====================================================
+         SHARED CHATBOT
+    ====================================================== -->
+
+    {% include "chatbot.html" %}
+
+
+    <!-- =====================================================
+         SHARED JAVASCRIPT
+    ====================================================== -->
+
+    <script
+        src="{{ url_for('static', filename='js/chatbot.js') }}"
+        defer
+    ></script>
+
+    <script
+        src="{{ url_for('static', filename='js/background.js') }}"
+        defer
+    ></script>
+
+
+    <!-- =====================================================
+         IMPORTANT
+
+         dashboard.js is not loaded here because the advanced
+         dashboard.html already loads dashboard.js and
+         notification.js at its bottom.
+
+         Loading dashboard.js here again would run everything
+         twice.
+    ====================================================== -->
+
 </body>
+
 </html>

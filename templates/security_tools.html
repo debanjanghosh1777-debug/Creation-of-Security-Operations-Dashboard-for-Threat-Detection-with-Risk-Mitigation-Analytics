@@ -2,205 +2,1951 @@
 
 {% block content %}
 
-<div class="dashboard-wrapper">
+{# ==========================================================================
+   AI THREAT DETECTION SYSTEM
+   ADVANCED SECURITY OPERATIONS TOOLKIT
 
-    <!-- ================= HERO ================= -->
+   File:
+   templates/security_tools.html
 
-    <div class="hero-section">
+   Existing Flask contract preserved:
+   - security_tools
+   - run_nmap
+   - read_capture
+   - penetration_report
+   - dashboard
+   - current_user
+   - get_flashed_messages
 
-        <div class="hero-left">
+   Page isolation:
+   - Every page-specific class begins with sectx-
+   - Existing Dashboard, Upload, History, Users, Threat Intelligence,
+     Analytics, Sidebar and Chatbot flows are not changed here
+   - No database, prediction, scan-history or dashboard variables are modified
+   ========================================================================== #}
 
-            <h1>Security Tools</h1>
+
+<link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='css/security_tools.css') }}"
+>
+
+
+{% set operator_name =
+    current_user.username
+    if current_user.is_authenticated
+    else 'Operator'
+%}
+
+{% set operator_initial =
+    operator_name[0]|upper
+    if operator_name
+    else 'O'
+%}
+
+
+<a
+    class="sectx-skip-link"
+    href="#securityToolsMain"
+>
+    Skip to security tools
+</a>
+
+
+<main
+    class="sectx-page"
+    id="securityToolsPage"
+    data-security-tools-url="{{ url_for('security_tools') }}"
+    data-nmap-url="{{ url_for('run_nmap') }}"
+    data-pcap-url="{{ url_for('read_capture') }}"
+    data-pentest-url="{{ url_for('penetration_report') }}"
+    data-operator="{{ operator_name|e }}"
+>
+
+    <!-- =====================================================
+         AMBIENT SECURITY TELEMETRY
+         The future isolated security_tools.js will animate
+         these canvases only while this page is open.
+    ====================================================== -->
+
+    <div
+        class="sectx-ambient"
+        aria-hidden="true"
+    >
+        <canvas
+            class="sectx-ambient__network"
+            id="securityNetworkCanvas"
+        ></canvas>
+
+        <canvas
+            class="sectx-ambient__packets"
+            id="securityPacketCanvas"
+        ></canvas>
+
+        <div class="sectx-ambient__grid"></div>
+        <div class="sectx-ambient__noise"></div>
+
+        <div
+            class="sectx-ambient__orb sectx-ambient__orb--cyan"
+        ></div>
+
+        <div
+            class="sectx-ambient__orb sectx-ambient__orb--blue"
+        ></div>
+
+        <div
+            class="sectx-ambient__orb sectx-ambient__orb--violet"
+        ></div>
+
+        <div
+            class="sectx-cursor-light"
+            id="securityCursorLight"
+        ></div>
+    </div>
+
+
+    <!-- =====================================================
+         ACCESSIBILITY STATUS
+    ====================================================== -->
+
+    <div
+        class="sectx-sr-only"
+        id="securityToolsAccessibilityStatus"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+    ></div>
+
+
+    <!-- =====================================================
+         SERVER FLASH MESSAGES
+    ====================================================== -->
+
+    {% with messages =
+        get_flashed_messages(with_categories=true)
+    %}
+
+        {% if messages %}
+
+            <section
+                class="sectx-alert-stack"
+                aria-label="Security-tool notifications"
+            >
+
+                {% for category, message in messages %}
+
+                    <article
+                        class="sectx-alert sectx-alert--{{ category|default('info', true)|e }}"
+                        data-security-alert
+                    >
+
+                        <span
+                            class="sectx-alert__icon"
+                            aria-hidden="true"
+                        >
+
+                            {% if category in ['success', 'safe'] %}
+                                <i class="fa-solid fa-circle-check"></i>
+
+                            {% elif category in ['danger', 'error'] %}
+                                <i class="fa-solid fa-circle-xmark"></i>
+
+                            {% elif category == 'warning' %}
+                                <i class="fa-solid fa-triangle-exclamation"></i>
+
+                            {% else %}
+                                <i class="fa-solid fa-circle-info"></i>
+                            {% endif %}
+
+                        </span>
+
+
+                        <div class="sectx-alert__content">
+
+                            <strong>
+                                {% if category in ['success', 'safe'] %}
+                                    Security operation completed
+
+                                {% elif category in ['danger', 'error'] %}
+                                    Security operation failed
+
+                                {% elif category == 'warning' %}
+                                    Security warning
+
+                                {% else %}
+                                    Toolkit notification
+                                {% endif %}
+                            </strong>
+
+                            <p>{{ message }}</p>
+
+                        </div>
+
+
+                        <button
+                            class="sectx-alert__dismiss"
+                            type="button"
+                            aria-label="Dismiss notification"
+                            data-dismiss-security-alert
+                        >
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+
+                    </article>
+
+                {% endfor %}
+
+            </section>
+
+        {% endif %}
+
+    {% endwith %}
+
+
+    <!-- =====================================================
+         SECURITY OPERATIONS COMMAND HEADER
+    ====================================================== -->
+
+    <header class="sectx-command-header">
+
+        <div class="sectx-command-header__content">
+
+            <nav
+                class="sectx-breadcrumb"
+                aria-label="Security-tools breadcrumb"
+            >
+
+                <a href="{{ url_for('dashboard') }}">
+                    Security Operations
+                </a>
+
+                <i
+                    class="fa-solid fa-chevron-right"
+                    aria-hidden="true"
+                ></i>
+
+                <strong>
+                    Defensive Toolkit
+                </strong>
+
+            </nav>
+
+
+            <p class="sectx-eyebrow">
+                AUTHORIZED SECURITY OPERATIONS
+            </p>
+
+
+            <h1 id="securityToolsMain">
+                Security Operations Toolkit
+            </h1>
+
+
+            <p class="sectx-command-header__subtitle">
+                Validate network exposure, inspect packet captures and
+                generate a local-host security posture report through the
+                application's existing protected Flask tools.
+            </p>
+
+
+            <div
+                class="sectx-command-header__badges"
+                aria-label="Toolkit capabilities"
+            >
+
+                <span>
+                    <i class="fa-solid fa-network-wired"></i>
+                    Service discovery
+                </span>
+
+                <span>
+                    <i class="fa-solid fa-wave-square"></i>
+                    PCAP inspection
+                </span>
+
+                <span>
+                    <i class="fa-solid fa-shield-halved"></i>
+                    Local posture review
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <div class="sectx-command-header__visual">
+
+            <div
+                class="sectx-security-core"
+                aria-hidden="true"
+            >
+
+                <span class="sectx-security-core__ring"></span>
+                <span class="sectx-security-core__ring"></span>
+                <span class="sectx-security-core__ring"></span>
+
+                <div class="sectx-security-core__icon">
+                    <i class="fa-solid fa-toolbox"></i>
+                </div>
+
+                <span class="sectx-security-core__node sectx-security-core__node--one">
+                    <i class="fa-solid fa-server"></i>
+                </span>
+
+                <span class="sectx-security-core__node sectx-security-core__node--two">
+                    <i class="fa-solid fa-file-shield"></i>
+                </span>
+
+                <span class="sectx-security-core__node sectx-security-core__node--three">
+                    <i class="fa-solid fa-fingerprint"></i>
+                </span>
+
+            </div>
+
+
+            <div class="sectx-command-header__operator">
+
+                <span class="sectx-operator-avatar">
+                    {{ operator_initial }}
+                </span>
+
+                <div>
+                    <small>AUTHENTICATED OPERATOR</small>
+                    <strong>{{ operator_name }}</strong>
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="sectx-command-header__controls">
+
+            <div class="sectx-command-clock">
+
+                <span>LOCAL COMMAND TIME</span>
+
+                <strong id="securityLocalClock">
+                    --:--:--
+                </strong>
+
+                <small id="securityLocalDate">
+                    Loading date
+                </small>
+
+            </div>
+
+
+            <a
+                class="sectx-icon-button"
+                href="{{ url_for('security_tools') }}"
+                aria-label="Refresh security tools"
+                data-tooltip="Refresh toolkit"
+            >
+                <i class="fa-solid fa-arrows-rotate"></i>
+            </a>
+
+
+            <button
+                class="sectx-icon-button"
+                id="securityPolicyButton"
+                type="button"
+                aria-label="Open authorized-use policy"
+                data-tooltip="Authorized-use policy"
+            >
+                <i class="fa-solid fa-scale-balanced"></i>
+            </button>
+
+
+            <a
+                class="sectx-primary-action"
+                href="#securityToolWorkspace"
+            >
+                <i class="fa-solid fa-terminal"></i>
+                <span>Open Tool Workspace</span>
+            </a>
+
+        </div>
+
+    </header>
+
+
+    <!-- =====================================================
+         LIVE TOOLKIT RIBBON
+    ====================================================== -->
+
+    <section
+        class="sectx-intelligence-ribbon"
+        aria-label="Security-tool telemetry"
+    >
+
+        <div class="sectx-intelligence-ribbon__label">
+
+            <span class="sectx-live-dot"></span>
+
+            TOOLKIT ONLINE
+
+        </div>
+
+
+        <div class="sectx-intelligence-ribbon__viewport">
+
+            <div
+                class="sectx-intelligence-ribbon__track"
+                id="securityIntelligenceTicker"
+            >
+
+                <span>
+                    <i class="fa-solid fa-network-wired"></i>
+                    Nmap fast service scan
+                </span>
+
+                <span>
+                    <i class="fa-solid fa-shield"></i>
+                    Open-port filtering enabled
+                </span>
+
+                <span>
+                    <i class="fa-solid fa-file-waveform"></i>
+                    PCAP and PCAPNG accepted
+                </span>
+
+                <span>
+                    <i class="fa-solid fa-microscope"></i>
+                    Protocol and endpoint analysis
+                </span>
+
+                <span>
+                    <i class="fa-solid fa-house-laptop"></i>
+                    Local-host posture target
+                </span>
+
+                <span>
+                    <i class="fa-solid fa-lock"></i>
+                    Login-protected endpoints
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <div class="sectx-intelligence-ribbon__session">
+
+            <small>SESSION</small>
+            <strong>AUTHORIZED</strong>
+
+        </div>
+
+    </section>
+
+
+    <!-- =====================================================
+         TOOLKIT READINESS
+    ====================================================== -->
+
+    <section
+        class="sectx-readiness-grid"
+        aria-label="Security-tool readiness"
+    >
+
+        <article class="sectx-readiness-card">
+
+            <div class="sectx-readiness-card__top">
+
+                <span class="sectx-readiness-card__icon">
+                    <i class="fa-solid fa-satellite-dish"></i>
+                </span>
+
+                <span class="sectx-readiness-card__label">
+                    NETWORK SCANNER
+                </span>
+
+                <span
+                    class="sectx-readiness-card__state"
+                    id="nmapStatusChip"
+                    data-tool-status="ready"
+                >
+                    READY
+                </span>
+
+            </div>
+
+
+            <strong>
+                Nmap
+            </strong>
+
 
             <p>
-                Professional Cyber Security Toolkit for Network Scanning,
-                Packet Analysis and Penetration Testing.
+                Validates an IP address or hostname before running a fast
+                service-version scan that returns open ports.
+            </p>
+
+        </article>
+
+
+        <article class="sectx-readiness-card">
+
+            <div class="sectx-readiness-card__top">
+
+                <span class="sectx-readiness-card__icon">
+                    <i class="fa-solid fa-file-import"></i>
+                </span>
+
+                <span class="sectx-readiness-card__label">
+                    PACKET ANALYZER
+                </span>
+
+                <span
+                    class="sectx-readiness-card__state"
+                    id="pcapStatusChip"
+                    data-tool-status="ready"
+                >
+                    READY
+                </span>
+
+            </div>
+
+
+            <strong>
+                PCAP Intelligence
+            </strong>
+
+
+            <p>
+                Reads a packet capture and reports protocol activity, top
+                endpoints, suspicious indicators and recommendations.
+            </p>
+
+        </article>
+
+
+        <article class="sectx-readiness-card">
+
+            <div class="sectx-readiness-card__top">
+
+                <span class="sectx-readiness-card__icon">
+                    <i class="fa-solid fa-user-shield"></i>
+                </span>
+
+                <span class="sectx-readiness-card__label">
+                    POSTURE REPORT
+                </span>
+
+                <span
+                    class="sectx-readiness-card__state"
+                    id="penStatusChip"
+                    data-tool-status="ready"
+                >
+                    READY
+                </span>
+
+            </div>
+
+
+            <strong>
+                Local Assessment
+            </strong>
+
+
+            <p>
+                Reviews detected local services and classifies findings into
+                Critical, High, Medium and Low categories.
+            </p>
+
+        </article>
+
+
+        <article class="sectx-readiness-card sectx-readiness-card--overall">
+
+            <div class="sectx-readiness-card__top">
+
+                <span class="sectx-readiness-card__icon">
+                    <i class="fa-solid fa-gauge-high"></i>
+                </span>
+
+                <span class="sectx-readiness-card__label">
+                    OPERATION STATE
+                </span>
+
+                <span
+                    class="sectx-readiness-card__state"
+                    id="overallStatusChip"
+                    data-tool-status="ready"
+                >
+                    STANDBY
+                </span>
+
+            </div>
+
+
+            <strong id="toolStatus">
+                Waiting for command
+            </strong>
+
+
+            <p id="toolStatusDetail">
+                Select one authorized security operation to begin.
+            </p>
+
+        </article>
+
+    </section>
+
+
+    <!-- =====================================================
+         PRIMARY SECURITY TOOL WORKSPACE
+    ====================================================== -->
+
+    <section
+        class="sectx-workspace"
+        id="securityToolWorkspace"
+        aria-labelledby="securityWorkspaceTitle"
+    >
+
+        <header class="sectx-section-header">
+
+            <div class="sectx-section-header__identity">
+
+                <span class="sectx-section-header__icon">
+                    <i class="fa-solid fa-terminal"></i>
+                </span>
+
+                <div>
+                    <p class="sectx-eyebrow">
+                        DEFENSIVE OPERATIONS CONSOLE
+                    </p>
+
+                    <h2 id="securityWorkspaceTitle">
+                        Select an Authorized Tool
+                    </h2>
+
+                    <p>
+                        Each module preserves the existing Flask endpoint and
+                        backend parser already configured in the application.
+                    </p>
+                </div>
+
+            </div>
+
+
+            <div class="sectx-workspace-state">
+
+                <span class="sectx-live-dot"></span>
+
+                SECURE SESSION
+
+            </div>
+
+        </header>
+
+
+        <div class="sectx-tool-grid">
+
+            <!-- =================================================
+                 NMAP NETWORK SCANNER
+            ================================================== -->
+
+            <article
+                class="sectx-tool-card sectx-tool-card--nmap"
+                id="nmapToolCard"
+                data-security-tool="nmap"
+            >
+
+                <header class="sectx-tool-card__header">
+
+                    <div class="sectx-tool-card__identity">
+
+                        <span class="sectx-tool-card__number">
+                            01
+                        </span>
+
+                        <span class="sectx-tool-card__icon">
+                            <i class="fa-solid fa-network-wired"></i>
+                        </span>
+
+                        <div>
+                            <p class="sectx-eyebrow">
+                                NETWORK RECONNAISSANCE
+                            </p>
+
+                            <h3>
+                                Network Scanner
+                            </h3>
+
+                            <span>
+                                Nmap service and open-port discovery
+                            </span>
+                        </div>
+
+                    </div>
+
+
+                    <span
+                        class="sectx-tool-card__badge"
+                        id="nmapCardStatus"
+                    >
+                        READY
+                    </span>
+
+                </header>
+
+
+                <div class="sectx-tool-card__description">
+
+                    <p>
+                        Enter one authorized IP address or hostname. The
+                        backend validates the target and performs a fast scan
+                        with service-version detection and open-port filtering.
+                    </p>
+
+                </div>
+
+
+                <form
+                    class="sectx-tool-form"
+                    id="nmapForm"
+                    action="{{ url_for('run_nmap') }}"
+                    method="post"
+                    data-tool-form="nmap"
+                    novalidate
+                >
+
+                    <label
+                        class="sectx-field"
+                        for="target"
+                    >
+
+                        <span class="sectx-field__label">
+                            Authorized target
+                        </span>
+
+
+                        <span class="sectx-input-shell">
+
+                            <i
+                                class="fa-solid fa-crosshairs"
+                                aria-hidden="true"
+                            ></i>
+
+                            <input
+                                id="target"
+                                name="target"
+                                type="text"
+                                inputmode="url"
+                                placeholder="Example: 192.168.1.1 or host.local"
+                                autocomplete="off"
+                                autocapitalize="none"
+                                spellcheck="false"
+                                maxlength="253"
+                                required
+                                aria-describedby="nmapTargetHelp nmapTargetError"
+                            >
+
+                            <span
+                                class="sectx-input-shell__validation"
+                                id="nmapTargetValidation"
+                                aria-hidden="true"
+                            >
+                                <i class="fa-solid fa-circle-check"></i>
+                            </span>
+
+                        </span>
+
+                    </label>
+
+
+                    <div class="sectx-field-support">
+
+                        <small id="nmapTargetHelp">
+                            Scan only systems you own or are explicitly
+                            authorized to assess.
+                        </small>
+
+                        <small
+                            class="sectx-field-error"
+                            id="nmapTargetError"
+                            role="alert"
+                        ></small>
+
+                    </div>
+
+
+                    <div class="sectx-tool-options">
+
+                        <span>
+                            <i class="fa-solid fa-bolt"></i>
+                            Fast scan
+                        </span>
+
+                        <span>
+                            <i class="fa-solid fa-magnifying-glass-chart"></i>
+                            Version detection
+                        </span>
+
+                        <span>
+                            <i class="fa-solid fa-door-open"></i>
+                            Open ports only
+                        </span>
+
+                        <span>
+                            <i class="fa-regular fa-clock"></i>
+                            60-second timeout
+                        </span>
+
+                    </div>
+
+
+                    <button
+                        class="sectx-tool-submit"
+                        id="nmapSubmit"
+                        type="submit"
+                    >
+
+                        <span class="sectx-tool-submit__icon">
+                            <i class="fa-solid fa-satellite-dish"></i>
+                        </span>
+
+                        <span class="sectx-tool-submit__copy">
+                            <strong>Run Network Scan</strong>
+                            <small>POST /run_nmap</small>
+                        </span>
+
+                        <i class="fa-solid fa-arrow-right"></i>
+
+                    </button>
+
+                </form>
+
+
+                <div
+                    class="sectx-tool-progress"
+                    id="nmapProgress"
+                    aria-hidden="true"
+                >
+                    <span></span>
+                </div>
+
+
+                <section
+                    class="sectx-result-console"
+                    id="nmapResultPanel"
+                    aria-labelledby="nmapResultTitle"
+                >
+
+                    <header class="sectx-result-console__header">
+
+                        <div>
+                            <span class="sectx-console-dot sectx-console-dot--red"></span>
+                            <span class="sectx-console-dot sectx-console-dot--amber"></span>
+                            <span class="sectx-console-dot sectx-console-dot--green"></span>
+                        </div>
+
+                        <strong id="nmapResultTitle">
+                            NMAP OUTPUT
+                        </strong>
+
+                        <div class="sectx-result-console__actions">
+
+                            <button
+                                type="button"
+                                aria-label="Copy network scan output"
+                                data-copy-result="nmapResult"
+                            >
+                                <i class="fa-regular fa-copy"></i>
+                            </button>
+
+                            <button
+                                type="button"
+                                aria-label="Clear network scan output"
+                                data-clear-result="nmap"
+                            >
+                                <i class="fa-solid fa-eraser"></i>
+                            </button>
+
+                        </div>
+
+                    </header>
+
+
+                    <pre
+                        id="nmapResult"
+                        tabindex="0"
+                    >No network scan has been executed in this session.</pre>
+
+                </section>
+
+            </article>
+
+
+            <!-- =================================================
+                 PCAP PACKET ANALYZER
+            ================================================== -->
+
+            <article
+                class="sectx-tool-card sectx-tool-card--pcap"
+                id="pcapToolCard"
+                data-security-tool="pcap"
+            >
+
+                <header class="sectx-tool-card__header">
+
+                    <div class="sectx-tool-card__identity">
+
+                        <span class="sectx-tool-card__number">
+                            02
+                        </span>
+
+                        <span class="sectx-tool-card__icon">
+                            <i class="fa-solid fa-wave-square"></i>
+                        </span>
+
+                        <div>
+                            <p class="sectx-eyebrow">
+                                PACKET INTELLIGENCE
+                            </p>
+
+                            <h3>
+                                Packet Analyzer
+                            </h3>
+
+                            <span>
+                                PCAP and PCAPNG traffic inspection
+                            </span>
+                        </div>
+
+                    </div>
+
+
+                    <span
+                        class="sectx-tool-card__badge"
+                        id="pcapCardStatus"
+                    >
+                        READY
+                    </span>
+
+                </header>
+
+
+                <div class="sectx-tool-card__description">
+
+                    <p>
+                        Select a packet capture for server-side analysis. The
+                        current backend reads the capture and evaluates
+                        protocols, endpoint frequency and suspicious traffic.
+                    </p>
+
+                </div>
+
+
+                <form
+                    class="sectx-tool-form"
+                    id="pcapForm"
+                    action="{{ url_for('read_capture') }}"
+                    method="post"
+                    enctype="multipart/form-data"
+                    data-tool-form="pcap"
+                >
+
+                    <div
+                        class="sectx-file-drop"
+                        id="pcapDropZone"
+                        data-file-drop
+                    >
+
+                        <input
+                            class="sectx-file-drop__input"
+                            id="pcapFile"
+                            name="pcap_file"
+                            type="file"
+                            accept=".pcap,.pcapng,application/vnd.tcpdump.pcap"
+                            required
+                            aria-describedby="pcapFileHelp pcapFileError"
+                        >
+
+
+                        <label
+                            class="sectx-file-drop__label"
+                            for="pcapFile"
+                        >
+
+                            <span class="sectx-file-drop__visual">
+
+                                <i class="fa-solid fa-file-arrow-up"></i>
+
+                                <span class="sectx-file-drop__pulse"></span>
+
+                            </span>
+
+
+                            <span class="sectx-file-drop__copy">
+
+                                <strong>
+                                    Choose or drop a packet capture
+                                </strong>
+
+                                <span>
+                                    Accepted formats: .pcap and .pcapng
+                                </span>
+
+                            </span>
+
+
+                            <span class="sectx-file-drop__button">
+                                Browse Capture
+                            </span>
+
+                        </label>
+
+
+                        <div
+                            class="sectx-selected-file"
+                            id="pcapSelectedFile"
+                            hidden
+                        >
+
+                            <span class="sectx-selected-file__icon">
+                                <i class="fa-solid fa-file-waveform"></i>
+                            </span>
+
+                            <div>
+                                <strong id="pcapSelectedFileName">
+                                    Capture selected
+                                </strong>
+
+                                <small id="pcapSelectedFileMeta">
+                                    Waiting for file metadata
+                                </small>
+                            </div>
+
+                            <button
+                                id="removePcapFile"
+                                type="button"
+                                aria-label="Remove selected packet capture"
+                            >
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="sectx-field-support">
+
+                        <small id="pcapFileHelp">
+                            Analyze only packet captures obtained through
+                            authorized monitoring or testing.
+                        </small>
+
+                        <small
+                            class="sectx-field-error"
+                            id="pcapFileError"
+                            role="alert"
+                        ></small>
+
+                    </div>
+
+
+                    <div class="sectx-tool-options">
+
+                        <span>
+                            <i class="fa-solid fa-layer-group"></i>
+                            Protocol counts
+                        </span>
+
+                        <span>
+                            <i class="fa-solid fa-arrow-up-right-dots"></i>
+                            Top source IPs
+                        </span>
+
+                        <span>
+                            <i class="fa-solid fa-arrow-down-short-wide"></i>
+                            Top destination IPs
+                        </span>
+
+                        <span>
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                            Threat indicators
+                        </span>
+
+                    </div>
+
+
+                    <button
+                        class="sectx-tool-submit"
+                        id="pcapSubmit"
+                        type="submit"
+                    >
+
+                        <span class="sectx-tool-submit__icon">
+                            <i class="fa-solid fa-microscope"></i>
+                        </span>
+
+                        <span class="sectx-tool-submit__copy">
+                            <strong>Analyze Packet Capture</strong>
+                            <small>POST /read_pcap</small>
+                        </span>
+
+                        <i class="fa-solid fa-arrow-right"></i>
+
+                    </button>
+
+                </form>
+
+
+                <div
+                    class="sectx-tool-progress"
+                    id="pcapProgress"
+                    aria-hidden="true"
+                >
+                    <span></span>
+                </div>
+
+
+                <section
+                    class="sectx-result-console"
+                    id="pcapResultPanel"
+                    aria-labelledby="pcapResultTitle"
+                >
+
+                    <header class="sectx-result-console__header">
+
+                        <div>
+                            <span class="sectx-console-dot sectx-console-dot--red"></span>
+                            <span class="sectx-console-dot sectx-console-dot--amber"></span>
+                            <span class="sectx-console-dot sectx-console-dot--green"></span>
+                        </div>
+
+                        <strong id="pcapResultTitle">
+                            PACKET ANALYSIS
+                        </strong>
+
+                        <div class="sectx-result-console__actions">
+
+                            <button
+                                type="button"
+                                aria-label="Copy packet-analysis result"
+                                data-copy-result="pcapResult"
+                            >
+                                <i class="fa-regular fa-copy"></i>
+                            </button>
+
+                            <button
+                                type="button"
+                                aria-label="Clear packet-analysis result"
+                                data-clear-result="pcap"
+                            >
+                                <i class="fa-solid fa-eraser"></i>
+                            </button>
+
+                        </div>
+
+                    </header>
+
+
+                    <div
+                        class="sectx-result-console__empty"
+                        id="pcapResult"
+                    >
+
+                        <i class="fa-solid fa-chart-network"></i>
+
+                        <strong>
+                            No capture analyzed
+                        </strong>
+
+                        <span>
+                            Select an authorized PCAP file to begin packet
+                            intelligence processing.
+                        </span>
+
+                    </div>
+
+                </section>
+
+            </article>
+
+
+            <!-- =================================================
+                 LOCAL PENETRATION POSTURE REPORT
+            ================================================== -->
+
+            <article
+                class="sectx-tool-card sectx-tool-card--pentest"
+                id="penToolCard"
+                data-security-tool="pentest"
+            >
+
+                <header class="sectx-tool-card__header">
+
+                    <div class="sectx-tool-card__identity">
+
+                        <span class="sectx-tool-card__number">
+                            03
+                        </span>
+
+                        <span class="sectx-tool-card__icon">
+                            <i class="fa-solid fa-user-secret"></i>
+                        </span>
+
+                        <div>
+                            <p class="sectx-eyebrow">
+                                LOCAL POSTURE ASSESSMENT
+                            </p>
+
+                            <h3>
+                                Security Posture Report
+                            </h3>
+
+                            <span>
+                                Localhost service-risk review
+                            </span>
+                        </div>
+
+                    </div>
+
+
+                    <span
+                        class="sectx-tool-card__badge"
+                        id="penCardStatus"
+                    >
+                        READY
+                    </span>
+
+                </header>
+
+
+                <div class="sectx-tool-card__description">
+
+                    <p>
+                        Generate the existing local-host report for
+                        <code>127.0.0.1</code>. The backend reviews discovered
+                        services and assigns risk categories with defensive
+                        recommendations.
+                    </p>
+
+                </div>
+
+
+                <div class="sectx-local-target">
+
+                    <span class="sectx-local-target__icon">
+                        <i class="fa-solid fa-house-signal"></i>
+                    </span>
+
+                    <div>
+                        <small>FIXED BACKEND TARGET</small>
+                        <strong>127.0.0.1</strong>
+                        <span>Local application host</span>
+                    </div>
+
+                    <span class="sectx-local-target__status">
+                        LOCAL
+                    </span>
+
+                </div>
+
+
+                <div class="sectx-risk-scale">
+
+                    <div class="sectx-risk-scale__item sectx-risk-scale__item--critical">
+                        <span></span>
+                        <strong>Critical</strong>
+                        <small>Telnet exposure</small>
+                    </div>
+
+                    <div class="sectx-risk-scale__item sectx-risk-scale__item--high">
+                        <span></span>
+                        <strong>High</strong>
+                        <small>FTP, MySQL or SMB</small>
+                    </div>
+
+                    <div class="sectx-risk-scale__item sectx-risk-scale__item--medium">
+                        <span></span>
+                        <strong>Medium</strong>
+                        <small>HTTP or RPC</small>
+                    </div>
+
+                    <div class="sectx-risk-scale__item sectx-risk-scale__item--low">
+                        <span></span>
+                        <strong>Low</strong>
+                        <small>Other services</small>
+                    </div>
+
+                </div>
+
+
+                <a
+                    class="sectx-tool-submit"
+                    id="penTestButton"
+                    href="{{ url_for('penetration_report') }}"
+                    data-tool-action="pentest"
+                >
+
+                    <span class="sectx-tool-submit__icon">
+                        <i class="fa-solid fa-file-shield"></i>
+                    </span>
+
+                    <span class="sectx-tool-submit__copy">
+                        <strong>Generate Local Report</strong>
+                        <small>GET /penetration_report</small>
+                    </span>
+
+                    <i class="fa-solid fa-arrow-right"></i>
+
+                </a>
+
+
+                <div
+                    class="sectx-tool-progress"
+                    id="penProgress"
+                    aria-hidden="true"
+                >
+                    <span></span>
+                </div>
+
+
+                <section
+                    class="sectx-result-console"
+                    id="penResultPanel"
+                    aria-labelledby="penResultTitle"
+                >
+
+                    <header class="sectx-result-console__header">
+
+                        <div>
+                            <span class="sectx-console-dot sectx-console-dot--red"></span>
+                            <span class="sectx-console-dot sectx-console-dot--amber"></span>
+                            <span class="sectx-console-dot sectx-console-dot--green"></span>
+                        </div>
+
+                        <strong id="penResultTitle">
+                            POSTURE REPORT
+                        </strong>
+
+                        <div class="sectx-result-console__actions">
+
+                            <button
+                                type="button"
+                                aria-label="Copy posture report"
+                                data-copy-result="penResult"
+                            >
+                                <i class="fa-regular fa-copy"></i>
+                            </button>
+
+                            <button
+                                type="button"
+                                aria-label="Clear posture report"
+                                data-clear-result="pentest"
+                            >
+                                <i class="fa-solid fa-eraser"></i>
+                            </button>
+
+                        </div>
+
+                    </header>
+
+
+                    <div
+                        class="sectx-result-console__empty"
+                        id="penResult"
+                    >
+
+                        <i class="fa-solid fa-shield-virus"></i>
+
+                        <strong>
+                            No posture report generated
+                        </strong>
+
+                        <span>
+                            Run the authorized local-host review to inspect
+                            service exposure and recommendations.
+                        </span>
+
+                    </div>
+
+                </section>
+
+            </article>
+
+        </div>
+
+    </section>
+
+
+    <!-- =====================================================
+         OPERATIONAL ACTIVITY AND WORKFLOW
+    ====================================================== -->
+
+    <section
+        class="sectx-operations-grid"
+        aria-label="Security operations workflow"
+    >
+
+        <article class="sectx-activity-panel">
+
+            <header class="sectx-section-header">
+
+                <div class="sectx-section-header__identity">
+
+                    <span class="sectx-section-header__icon">
+                        <i class="fa-solid fa-list-check"></i>
+                    </span>
+
+                    <div>
+                        <p class="sectx-eyebrow">
+                            LIVE OPERATION LOG
+                        </p>
+
+                        <h2>
+                            Session Activity
+                        </h2>
+
+                        <p>
+                            Interface events from this browser session will
+                            appear here without altering persistent scan data.
+                        </p>
+                    </div>
+
+                </div>
+
+
+                <button
+                    class="sectx-text-button"
+                    id="clearSecurityActivity"
+                    type="button"
+                >
+                    <i class="fa-solid fa-trash-can"></i>
+                    Clear log
+                </button>
+
+            </header>
+
+
+            <ol
+                class="sectx-activity-list"
+                id="securityActivityList"
+                aria-live="polite"
+            >
+
+                <li class="sectx-activity-item">
+
+                    <span class="sectx-activity-item__marker">
+                        <i class="fa-solid fa-power-off"></i>
+                    </span>
+
+                    <div>
+                        <strong>
+                            Security toolkit initialized
+                        </strong>
+
+                        <span>
+                            Waiting for an authorized operation.
+                        </span>
+                    </div>
+
+                    <time id="securityActivityStartTime">
+                        --:--
+                    </time>
+
+                </li>
+
+            </ol>
+
+        </article>
+
+
+        <aside class="sectx-workflow-panel">
+
+            <header>
+
+                <p class="sectx-eyebrow">
+                    CONTROLLED EXECUTION
+                </p>
+
+                <h2>
+                    Defensive Workflow
+                </h2>
+
+                <p>
+                    Each operation remains separated from the application's
+                    malware-upload and scan-history workflow.
+                </p>
+
+            </header>
+
+
+            <ol class="sectx-workflow-list">
+
+                <li>
+
+                    <span>01</span>
+
+                    <div>
+                        <strong>
+                            Validate input
+                        </strong>
+
+                        <p>
+                            Confirm the target or packet-capture selection
+                            before contacting a protected Flask endpoint.
+                        </p>
+                    </div>
+
+                </li>
+
+
+                <li>
+
+                    <span>02</span>
+
+                    <div>
+                        <strong>
+                            Execute existing backend
+                        </strong>
+
+                        <p>
+                            Use the configured Nmap, Scapy or local report
+                            function without changing database records.
+                        </p>
+                    </div>
+
+                </li>
+
+
+                <li>
+
+                    <span>03</span>
+
+                    <div>
+                        <strong>
+                            Review output
+                        </strong>
+
+                        <p>
+                            Present results inside the matching console or the
+                            existing server-rendered PCAP result page.
+                        </p>
+                    </div>
+
+                </li>
+
+            </ol>
+
+        </aside>
+
+    </section>
+
+
+    <!-- =====================================================
+         CAPABILITY MATRIX
+    ====================================================== -->
+
+    <section
+        class="sectx-capability-panel"
+        aria-labelledby="capabilityMatrixTitle"
+    >
+
+        <header class="sectx-section-header">
+
+            <div class="sectx-section-header__identity">
+
+                <span class="sectx-section-header__icon">
+                    <i class="fa-solid fa-table-cells-large"></i>
+                </span>
+
+                <div>
+                    <p class="sectx-eyebrow">
+                        TOOLKIT REFERENCE
+                    </p>
+
+                    <h2 id="capabilityMatrixTitle">
+                        Capability Matrix
+                    </h2>
+
+                    <p>
+                        Backend-aligned inputs, outputs and operational
+                        boundaries for the current security modules.
+                    </p>
+                </div>
+
+            </div>
+
+        </header>
+
+
+        <div
+            class="sectx-table-scroll"
+            tabindex="0"
+            aria-label="Scrollable security-tool capability matrix"
+        >
+
+            <table class="sectx-capability-table">
+
+                <caption class="sectx-sr-only">
+                    Security-tool capabilities, inputs, processing and outputs.
+                </caption>
+
+                <thead>
+
+                    <tr>
+                        <th scope="col">Module</th>
+                        <th scope="col">Accepted Input</th>
+                        <th scope="col">Existing Processing</th>
+                        <th scope="col">Primary Output</th>
+                        <th scope="col">Boundary</th>
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    <tr>
+
+                        <td>
+                            <span class="sectx-module-label sectx-module-label--nmap">
+                                <i class="fa-solid fa-network-wired"></i>
+                                Network Scanner
+                            </span>
+                        </td>
+
+                        <td>
+                            IP address or hostname
+                        </td>
+
+                        <td>
+                            Fast Nmap scan, version detection and open-port
+                            filtering
+                        </td>
+
+                        <td>
+                            Raw scan output and structured open ports
+                        </td>
+
+                        <td>
+                            Authorized targets only
+                        </td>
+
+                    </tr>
+
+
+                    <tr>
+
+                        <td>
+                            <span class="sectx-module-label sectx-module-label--pcap">
+                                <i class="fa-solid fa-wave-square"></i>
+                                Packet Analyzer
+                            </span>
+                        </td>
+
+                        <td>
+                            PCAP or PCAPNG capture
+                        </td>
+
+                        <td>
+                            Protocol counts, top endpoints and suspicious
+                            packet indicators
+                        </td>
+
+                        <td>
+                            Threat level and defensive recommendations
+                        </td>
+
+                        <td>
+                            Authorized captures only
+                        </td>
+
+                    </tr>
+
+
+                    <tr>
+
+                        <td>
+                            <span class="sectx-module-label sectx-module-label--pentest">
+                                <i class="fa-solid fa-user-shield"></i>
+                                Posture Report
+                            </span>
+                        </td>
+
+                        <td>
+                            Fixed local target
+                        </td>
+
+                        <td>
+                            Local Nmap service review and rule-based risk
+                            classification
+                        </td>
+
+                        <td>
+                            Risk totals, open ports and recommendations
+                        </td>
+
+                        <td>
+                            Target fixed to 127.0.0.1
+                        </td>
+
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+
+    <!-- =====================================================
+         AUTHORIZED USE NOTICE
+    ====================================================== -->
+
+    <section
+        class="sectx-compliance-panel"
+        aria-labelledby="securityComplianceTitle"
+    >
+
+        <div class="sectx-compliance-panel__icon">
+            <i class="fa-solid fa-scale-balanced"></i>
+        </div>
+
+
+        <div class="sectx-compliance-panel__content">
+
+            <p class="sectx-eyebrow">
+                AUTHORIZATION REQUIRED
+            </p>
+
+            <h2 id="securityComplianceTitle">
+                Operate only within approved systems and data
+            </h2>
+
+            <p>
+                Network scanning and packet inspection must be limited to
+                assets, environments and captures that you own or have clear
+                permission to assess. The local posture module remains fixed
+                to the application's own host.
             </p>
 
         </div>
 
-        <div class="hero-right">
 
-            <i class="fa-solid fa-toolbox fa-6x"
-               style="color:#00e5ff;"></i>
+        <details class="sectx-compliance-panel__details">
 
-        </div>
+            <summary>
+                View operating boundaries
+                <i class="fa-solid fa-chevron-down"></i>
+            </summary>
 
-    </div>
+            <div>
 
-    <!-- ================= TOOL CARDS ================= -->
+                <ul>
+                    <li>
+                        Do not scan third-party networks without explicit
+                        authorization.
+                    </li>
 
-    <div class="chart-grid">
+                    <li>
+                        Do not upload packet captures containing data you are
+                        not permitted to process.
+                    </li>
 
-        <!-- ================= NMAP ================= -->
+                    <li>
+                        Review tool output before acting on automatically
+                        generated recommendations.
+                    </li>
 
-        <div class="chart-card">
-
-            <div class="card-header">
-
-                <h3>
-                    <i class="fa-solid fa-network-wired"></i>
-                    Network Scanner
-                </h3>
-
-            </div>
-
-            <form id="nmapForm">
-
-                <input
-                    type="text"
-                    id="target"
-                    class="search-input"
-                    placeholder="Enter IP Address">
-
-                <br><br>
-
-                <button
-                    type="button"
-                    class="primary-btn"
-                    onclick="runNmap()">
-
-                    Scan Network
-
-                </button>
-
-            </form>
-
-            <br>
-
-            <pre id="nmapResult"></pre>
-
-        </div>
-
-        <!-- ================= WIRESHARK ================= -->
-
-        <div class="chart-card">
-
-            <div class="card-header">
-
-                <h3>
-                    <i class="fa-solid fa-wave-square"></i>
-                    Packet Analyzer
-                </h3>
+                    <li>
+                        These tools do not add records to malware scan history
+                        unless the backend is separately changed to do so.
+                    </li>
+                </ul>
 
             </div>
 
-            <form id="pcapForm"
-                  enctype="multipart/form-data">
+        </details>
 
-                <<input
-    type="file"
-    name="pcap_file"
-    accept=".pcap,.pcapng"
-    required
->
+    </section>
 
-                <br><br>
 
-                <button
-                    type="button"
-                    class="primary-btn"
-                    onclick="analyzePCAP()">
+    <!-- =====================================================
+         PAGE FOOTER
+    ====================================================== -->
 
-                    Analyze PCAP
+    <footer class="sectx-footer">
 
-                </button>
+        <div class="sectx-footer__identity">
 
-            </form>
+            <span>
+                <i class="fa-solid fa-toolbox"></i>
+            </span>
 
-            <br>
+            <div>
+                <strong>
+                    AI Threat Detection System
+                </strong>
 
-            <!-- CHANGED -->
-            <div id="pcapResult" class="report-box"></div>
+                <small>
+                    Defensive Security Operations Workspace
+                </small>
+            </div>
 
         </div>
 
-        <!-- ================= PEN TEST ================= -->
 
-        <div class="chart-card">
+        <div class="sectx-footer__status">
 
-            <div class="card-header">
+            <span>
+                <i class="fa-solid fa-lock"></i>
+                Login-protected routes
+            </span>
 
-                <h3>
-                    <i class="fa-solid fa-user-secret"></i>
-                    Penetration Test
-                </h3>
+            <span>
+                <i class="fa-solid fa-server"></i>
+                Existing tool backends preserved
+            </span>
 
-            </div>
+            <span>
+                <i class="fa-solid fa-database"></i>
+                Scan database unaffected
+            </span>
+
+        </div>
+
+
+        <small>
+            Toolkit v1
+        </small>
+
+    </footer>
+
+
+    <!-- =====================================================
+         AUTHORIZED-USE POLICY MODAL
+         Prepared for the future isolated security_tools.js.
+    ====================================================== -->
+
+    <div
+        class="sectx-modal"
+        id="securityPolicyModal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="securityPolicyModalTitle"
+        aria-hidden="true"
+    >
+
+        <div
+            class="sectx-modal__backdrop"
+            data-close-security-policy
+        ></div>
+
+
+        <section class="sectx-policy-dialog">
 
             <button
-                class="primary-btn"
-                onclick="runPenTest()">
-
-                Generate Report
-
+                class="sectx-dialog-close"
+                id="closeSecurityPolicyModal"
+                type="button"
+                aria-label="Close authorized-use policy"
+            >
+                <i class="fa-solid fa-xmark"></i>
             </button>
 
-            <br><br>
 
-            <!-- CHANGED -->
-            <div id="penResult" class="report-box"></div>
+            <div class="sectx-policy-dialog__icon">
+                <i class="fa-solid fa-shield-halved"></i>
+            </div>
 
-        </div>
+
+            <p class="sectx-eyebrow">
+                SECURITY OPERATIONS POLICY
+            </p>
+
+
+            <h2 id="securityPolicyModalTitle">
+                Authorized Defensive Use Only
+            </h2>
+
+
+            <p>
+                Use these modules only for systems, networks and packet
+                captures that are owned by you or covered by explicit
+                permission.
+            </p>
+
+
+            <div class="sectx-policy-dialog__grid">
+
+                <article>
+                    <i class="fa-solid fa-circle-check"></i>
+                    <strong>Permitted</strong>
+                    <span>
+                        Your systems, lab environments and approved captures.
+                    </span>
+                </article>
+
+
+                <article>
+                    <i class="fa-solid fa-circle-xmark"></i>
+                    <strong>Not permitted</strong>
+                    <span>
+                        Unauthorized targets, networks or intercepted traffic.
+                    </span>
+                </article>
+
+            </div>
+
+
+            <button
+                class="sectx-primary-action"
+                id="acknowledgeSecurityPolicy"
+                type="button"
+            >
+                <i class="fa-solid fa-check"></i>
+                I Understand
+            </button>
+
+        </section>
 
     </div>
 
-    <!-- ================= STATUS ================= -->
 
-    <div class="summary-grid">
+    <!-- =====================================================
+         TOAST REGION
+         Prepared for the future isolated security_tools.js.
+    ====================================================== -->
 
-        <div class="summary-item">
+    <div
+        class="sectx-toast-region"
+        id="securityToolsToastRegion"
+        aria-live="polite"
+        aria-atomic="false"
+    ></div>
 
-            <h5>Nmap</h5>
+</main>
 
-            <h2 class="online">
 
-                READY
+{#
+   security_tools.js is intentionally not loaded yet.
 
-            </h2>
+   The matching isolated JavaScript will later activate:
+   - Local clock and session telemetry
+   - Nmap validation and AJAX result rendering
+   - PCAP file selection, drag-and-drop and safe form handling
+   - Local posture report rendering
+   - Per-tool loading, completion and failure states
+   - Copy and clear result controls
+   - Activity log
+   - Policy modal
+   - Keyboard accessibility
+   - Toasts
+   - Ambient network animations
 
-        </div>
-
-        <div class="summary-item">
-
-            <h5>Packet Analyzer</h5>
-
-            <h2 class="online">
-
-                READY
-
-            </h2>
-
-        </div>
-
-        <div class="summary-item">
-
-            <h5>Pen Test</h5>
-
-            <h2 class="online">
-
-                READY
-
-            </h2>
-
-        </div>
-
-        <div class="summary-item">
-
-            <h5>Status</h5>
-
-            <h2 id="toolStatus">
-
-                Waiting...
-
-            </h2>
-
-        </div>
-
-    </div>
-
-</div>
-
-<script src="{{ url_for('static', filename='js/security_tools.js') }}"></script>
+   Native Flask fallbacks remain present:
+   - Nmap form posts to run_nmap
+   - PCAP form posts to read_capture using name="pcap_file"
+   - Local posture link opens penetration_report
+#}
 
 {% endblock %}

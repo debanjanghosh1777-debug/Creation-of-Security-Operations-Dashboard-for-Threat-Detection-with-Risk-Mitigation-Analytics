@@ -2,198 +2,1585 @@
 
 {% block content %}
 
-<div class="dashboard-wrapper">
+{# ==========================================================================
+   AI THREAT DETECTION — ADVANCED FORENSIC SCAN HISTORY
+   File: templates/history.html
 
-    <!-- ================= HERO ================= -->
+   Existing backend contract preserved:
+   - scans
+   - page
+   - total_pages
+   - total
+   - search
+   - risk
 
-    <div class="hero-section">
+   Existing Flask routes preserved:
+   - history
+   - dashboard
+   - upload
+   - export_csv
+   - export_pdf
+   - delete
 
-        <div class="hero-left">
+   CSS namespace:
+   - Every page-specific class begins with histx-
+   - This prevents History styling from affecting Dashboard, Upload or Result.
+   ========================================================================== #}
 
-            <h1>Scan History</h1>
 
-            <p>
+{# --------------------------------------------------------------------------
+   SAFE DEFAULTS
+   -------------------------------------------------------------------------- #}
 
-                View all previously scanned files and AI detection reports.
+{% set current_page = page|default(1, true)|int %}
+{% set page_count = total_pages|default(1, true)|int %}
+{% set record_total = total|default(0, true)|int %}
+{% set current_search = search|default('', true) %}
+{% set current_risk = risk|default('', true) %}
+{% set page_size = 10 %}
 
-            </p>
+{% set calculated_start = ((current_page - 1) * page_size) + 1 %}
+{% set page_start = calculated_start if record_total > 0 else 0 %}
+{% set calculated_end = current_page * page_size %}
+{% set page_end = record_total if calculated_end > record_total else calculated_end %}
 
-        </div>
 
-        <div class="hero-right">
+{# --------------------------------------------------------------------------
+   CURRENT-PAGE SECURITY SUMMARY
+   -------------------------------------------------------------------------- #}
 
-            <i class="fa-solid fa-clock-rotate-left fa-6x"
-               style="color:#00e5ff"></i>
+{% set summary = namespace(
+    safe=0,
+    threats=0,
+    suspicious=0,
+    critical=0,
+    high=0
+) %}
 
-        </div>
+{% for scan in scans %}
+    {% set prediction_text = scan.prediction|default('Unknown', true)|string|lower %}
+    {% set risk_text = scan.risk|default('Unknown', true)|string|lower %}
 
+    {% if prediction_text in ['safe', 'benign', 'clean'] %}
+        {% set summary.safe = summary.safe + 1 %}
+    {% elif prediction_text in ['suspicious', 'unknown', 'review'] %}
+        {% set summary.suspicious = summary.suspicious + 1 %}
+    {% else %}
+        {% set summary.threats = summary.threats + 1 %}
+    {% endif %}
+
+    {% if risk_text == 'critical' %}
+        {% set summary.critical = summary.critical + 1 %}
+    {% elif risk_text == 'high' %}
+        {% set summary.high = summary.high + 1 %}
+    {% endif %}
+{% endfor %}
+
+
+<a class="histx-skip-link" href="#historyMainContent">
+    Skip to scan history
+</a>
+
+
+<main
+    class="histx-page"
+    id="historyPage"
+    data-current-page="{{ current_page }}"
+    data-total-pages="{{ page_count }}"
+    data-total-records="{{ record_total }}"
+    data-current-search="{{ current_search|e }}"
+    data-current-risk="{{ current_risk|e }}"
+>
+
+    <!-- =====================================================
+         AMBIENT VISUAL LAYERS
+         The corresponding history.css will activate these.
+    ====================================================== -->
+
+    <div class="histx-ambient" aria-hidden="true">
+        <canvas class="histx-ambient__mesh" id="historyMeshCanvas"></canvas>
+        <canvas class="histx-ambient__traffic" id="historyTrafficCanvas"></canvas>
+
+        <div class="histx-ambient__gradient histx-ambient__gradient--cyan"></div>
+        <div class="histx-ambient__gradient histx-ambient__gradient--blue"></div>
+        <div class="histx-ambient__gradient histx-ambient__gradient--violet"></div>
+
+        <div class="histx-ambient__grid"></div>
+        <div class="histx-ambient__noise"></div>
+        <div class="histx-ambient__vignette"></div>
+        <div class="histx-cursor-light" id="historyCursorLight"></div>
     </div>
 
-    <!-- ================= SEARCH ================= -->
 
-    <div class="chart-card">
+    <!-- =====================================================
+         ACCESSIBILITY STATUS
+    ====================================================== -->
 
-        <form method="GET"
-              action="{{ url_for('history') }}">
+    <div
+        class="histx-sr-only"
+        id="historyAccessibilityStatus"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+    ></div>
 
-            <div style="display:flex;gap:15px;">
 
-                <input
-                    type="text"
-                    name="search"
-                    placeholder="Search filename..."
-                    class="search-input"
-                    style="flex:1">
+    <!-- =====================================================
+         FLASH MESSAGES
+    ====================================================== -->
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <section
+                class="histx-alert-stack"
+                aria-label="History notifications"
+            >
+                {% for category, message in messages %}
+                    <article
+                        class="histx-alert histx-alert--{{ category|default('info', true)|e }}"
+                        data-history-alert
+                    >
+                        <span class="histx-alert__icon" aria-hidden="true">
+                            {% if category in ['success', 'safe'] %}
+                                <i class="fa-solid fa-circle-check"></i>
+                            {% elif category in ['danger', 'error'] %}
+                                <i class="fa-solid fa-circle-xmark"></i>
+                            {% elif category == 'warning' %}
+                                <i class="fa-solid fa-triangle-exclamation"></i>
+                            {% else %}
+                                <i class="fa-solid fa-circle-info"></i>
+                            {% endif %}
+                        </span>
+
+                        <div class="histx-alert__content">
+                            <strong>
+                                {% if category in ['success', 'safe'] %}
+                                    Operation completed
+                                {% elif category in ['danger', 'error'] %}
+                                    Action failed
+                                {% elif category == 'warning' %}
+                                    Attention required
+                                {% else %}
+                                    System message
+                                {% endif %}
+                            </strong>
+
+                            <p>{{ message }}</p>
+                        </div>
+
+                        <button
+                            class="histx-alert__dismiss"
+                            type="button"
+                            aria-label="Dismiss notification"
+                            data-dismiss-history-alert
+                        >
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </article>
+                {% endfor %}
+            </section>
+        {% endif %}
+    {% endwith %}
+
+
+    <!-- =====================================================
+         COMMAND HEADER
+         Dashboard-inspired visual hierarchy, History-only.
+    ====================================================== -->
+
+    <header class="histx-command-header">
+
+        <div class="histx-command-header__identity">
+
+            <nav
+                class="histx-breadcrumb"
+                aria-label="Scan history breadcrumb"
+            >
+                <a href="{{ url_for('dashboard') }}">
+                    Security Operations
+                </a>
+
+                <i
+                    class="fa-solid fa-chevron-right"
+                    aria-hidden="true"
+                ></i>
+
+                <strong>Scan History</strong>
+            </nav>
+
+
+            <div class="histx-command-title-row">
+
+                <div class="histx-command-copy">
+
+                    <p class="histx-eyebrow">
+                        FORENSIC AUDIT &amp; AI CLASSIFICATION ARCHIVE
+                    </p>
+
+                    <h1 id="historyMainContent">
+                        Threat Intelligence History
+                    </h1>
+
+                    <p class="histx-command-subtitle">
+                        Investigate every completed file analysis, review AI
+                        classification evidence, filter risk records and maintain
+                        a reliable audit trail of security activity.
+                    </p>
+
+                </div>
+
+
+                <div
+                    class="histx-security-state"
+                    aria-label="Threat history database operational"
+                >
+                    <span class="histx-security-state__signal"></span>
+
+                    <div>
+                        <small>HISTORY FABRIC</small>
+                        <strong>DATABASE CONNECTED</strong>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="histx-command-header__controls">
+
+            <div class="histx-command-clock">
+                <span>LOCAL FORENSIC TIME</span>
+                <strong id="historyLocalClock">--:--:--</strong>
+                <small id="historyLocalDate">Loading date</small>
+            </div>
+
+
+            <a
+                class="histx-icon-button"
+                href="{{ url_for('export_csv') }}"
+                aria-label="Export complete scan history as CSV"
+                data-tooltip="Export CSV"
+            >
+                <i class="fa-solid fa-file-csv"></i>
+            </a>
+
+
+            <a
+                class="histx-icon-button"
+                href="{{ url_for('export_pdf') }}"
+                aria-label="Export complete scan history as PDF"
+                data-tooltip="Export PDF"
+            >
+                <i class="fa-solid fa-file-pdf"></i>
+            </a>
+
+
+            <a
+                class="histx-primary-action"
+                href="{{ url_for('upload') }}"
+            >
+                <i class="fa-solid fa-shield-virus"></i>
+                <span>Analyse New File</span>
+            </a>
+
+        </div>
+
+    </header>
+
+
+    <!-- =====================================================
+         LIVE HISTORY INTELLIGENCE RIBBON
+    ====================================================== -->
+
+    <section
+        class="histx-intelligence-ribbon"
+        aria-label="Live history intelligence"
+    >
+
+        <div class="histx-intelligence-ribbon__label">
+            <span class="histx-live-dot"></span>
+            FORENSIC ARCHIVE
+        </div>
+
+
+        <div class="histx-intelligence-ribbon__viewport">
+            <div
+                class="histx-intelligence-ribbon__track"
+                id="historyIntelligenceTicker"
+            >
+                <span>
+                    <i class="fa-solid fa-database"></i>
+                    {{ record_total }} total scan record{% if record_total != 1 %}s{% endif %}
+                </span>
+
+                <span>
+                    <i class="fa-solid fa-layer-group"></i>
+                    Page {{ current_page }} of {{ page_count if page_count > 0 else 1 }}
+                </span>
+
+                <span>
+                    <i class="fa-solid fa-shield-check"></i>
+                    {{ summary.safe }} safe record{% if summary.safe != 1 %}s{% endif %} on this page
+                </span>
+
+                <span>
+                    <i class="fa-solid fa-shield-virus"></i>
+                    {{ summary.threats }} threat record{% if summary.threats != 1 %}s{% endif %} on this page
+                </span>
+
+                <span>
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    {{ summary.critical }} critical record{% if summary.critical != 1 %}s{% endif %} on this page
+                </span>
+
+                <span>
+                    <i class="fa-solid fa-lock"></i>
+                    Secure audit trail active
+                </span>
+            </div>
+        </div>
+
+
+        <div class="histx-intelligence-ribbon__range">
+            <small>VISIBLE RANGE</small>
+            <strong>
+                {{ page_start }}–{{ page_end }}
+            </strong>
+        </div>
+
+    </section>
+
+
+    <!-- =====================================================
+         EXECUTIVE HISTORY OVERVIEW
+    ====================================================== -->
+
+    <section
+        class="histx-overview-grid"
+        aria-label="Scan history overview"
+    >
+
+        <article class="histx-metric-card histx-metric-card--total">
+
+            <div class="histx-metric-card__top">
+                <span class="histx-metric-card__icon">
+                    <i class="fa-solid fa-database"></i>
+                </span>
+
+                <span class="histx-metric-card__label">
+                    TOTAL RECORDS
+                </span>
+
+                <span class="histx-status-chip">
+                    ARCHIVE
+                </span>
+            </div>
+
+            <strong class="histx-metric-card__value">
+                {{ record_total }}
+            </strong>
+
+            <p>
+                All stored AI analysis records currently available through
+                the scan-history database.
+            </p>
+
+        </article>
+
+
+        <article class="histx-metric-card histx-metric-card--visible">
+
+            <div class="histx-metric-card__top">
+                <span class="histx-metric-card__icon">
+                    <i class="fa-solid fa-table-list"></i>
+                </span>
+
+                <span class="histx-metric-card__label">
+                    CURRENT PAGE
+                </span>
+
+                <span class="histx-status-chip">
+                    {{ scans|length }}/{{ page_size }}
+                </span>
+            </div>
+
+            <strong class="histx-metric-card__value">
+                {{ current_page }}
+                <small>/{{ page_count if page_count > 0 else 1 }}</small>
+            </strong>
+
+            <p>
+                Displaying records {{ page_start }} through {{ page_end }}
+                under the current query.
+            </p>
+
+        </article>
+
+
+        <article class="histx-metric-card histx-metric-card--safe">
+
+            <div class="histx-metric-card__top">
+                <span class="histx-metric-card__icon">
+                    <i class="fa-solid fa-shield-check"></i>
+                </span>
+
+                <span class="histx-metric-card__label">
+                    SAFE ON PAGE
+                </span>
+
+                <span class="histx-status-chip histx-status-chip--safe">
+                    VERIFIED
+                </span>
+            </div>
+
+            <strong class="histx-metric-card__value">
+                {{ summary.safe }}
+            </strong>
+
+            <p>
+                Records identified as safe, benign or clean on the currently
+                visible page.
+            </p>
+
+        </article>
+
+
+        <article class="histx-metric-card histx-metric-card--threat">
+
+            <div class="histx-metric-card__top">
+                <span class="histx-metric-card__icon">
+                    <i class="fa-solid fa-shield-virus"></i>
+                </span>
+
+                <span class="histx-metric-card__label">
+                    THREATS ON PAGE
+                </span>
+
+                <span class="histx-status-chip histx-status-chip--danger">
+                    REVIEW
+                </span>
+            </div>
+
+            <strong class="histx-metric-card__value">
+                {{ summary.threats + summary.suspicious }}
+            </strong>
+
+            <p>
+                Malicious, suspicious or review-required classifications on
+                the currently visible page.
+            </p>
+
+        </article>
+
+    </section>
+
+
+    <!-- =====================================================
+         INVESTIGATION FILTERS
+         Uses the existing GET /history backend.
+    ====================================================== -->
+
+    <section
+        class="histx-filter-panel"
+        aria-labelledby="historyFilterTitle"
+    >
+
+        <header class="histx-section-header">
+
+            <div class="histx-section-header__identity">
+
+                <span class="histx-section-header__icon">
+                    <i class="fa-solid fa-filter-circle-dollar"></i>
+                </span>
+
+                <div>
+                    <p class="histx-eyebrow">FORENSIC QUERY ENGINE</p>
+                    <h2 id="historyFilterTitle">Search and Filter Records</h2>
+                    <p>
+                        Search filenames and narrow the archive by exact
+                        risk classification.
+                    </p>
+                </div>
+
+            </div>
+
+
+            {% if current_search or current_risk %}
+                <div class="histx-active-query">
+                    <span class="histx-live-dot"></span>
+                    FILTER ACTIVE
+                </div>
+            {% else %}
+                <div class="histx-active-query histx-active-query--idle">
+                    ALL RECORDS
+                </div>
+            {% endif %}
+
+        </header>
+
+
+        <form
+            class="histx-filter-form"
+            id="historyFilterForm"
+            method="GET"
+            action="{{ url_for('history') }}"
+            role="search"
+        >
+
+            <label class="histx-field histx-field--search">
+
+                <span class="histx-field__label">
+                    Filename intelligence
+                </span>
+
+                <span class="histx-input-shell">
+                    <i
+                        class="fa-solid fa-magnifying-glass"
+                        aria-hidden="true"
+                    ></i>
+
+                    <input
+                        id="historySearchInput"
+                        type="search"
+                        name="search"
+                        value="{{ current_search|e }}"
+                        placeholder="Search filename, extension or keyword"
+                        autocomplete="off"
+                        spellcheck="false"
+                    >
+
+                    <kbd>⌘ K</kbd>
+                </span>
+
+            </label>
+
+
+            <label class="histx-field">
+
+                <span class="histx-field__label">
+                    Risk classification
+                </span>
+
+                <span class="histx-select-shell">
+                    <i
+                        class="fa-solid fa-gauge-high"
+                        aria-hidden="true"
+                    ></i>
+
+                    <select
+                        id="historyRiskFilter"
+                        name="risk"
+                    >
+                        <option value="">
+                            All risk levels
+                        </option>
+
+                        {% for risk_option in ['Low', 'Medium', 'High', 'Critical', 'Unknown'] %}
+                            <option
+                                value="{{ risk_option }}"
+                                {% if current_risk == risk_option %}selected{% endif %}
+                            >
+                                {{ risk_option }}
+                            </option>
+                        {% endfor %}
+                    </select>
+
+                    <i
+                        class="fa-solid fa-chevron-down"
+                        aria-hidden="true"
+                    ></i>
+                </span>
+
+            </label>
+
+
+            <div class="histx-filter-form__actions">
 
                 <button
-                    class="primary-btn">
-
+                    class="histx-filter-button histx-filter-button--primary"
+                    type="submit"
+                >
                     <i class="fa-solid fa-magnifying-glass"></i>
-
-                    Search
-
+                    Apply Filters
                 </button>
+
+
+                <a
+                    class="histx-filter-button histx-filter-button--secondary"
+                    href="{{ url_for('history') }}"
+                >
+                    <i class="fa-solid fa-rotate-left"></i>
+                    Reset
+                </a>
 
             </div>
 
         </form>
 
-    </div>
 
-    <br>
+        {% if current_search or current_risk %}
+            <div
+                class="histx-query-summary"
+                aria-label="Current history filters"
+            >
+                <span>Active query:</span>
 
-    <!-- ================= HISTORY TABLE ================= -->
+                {% if current_search %}
+                    <strong>
+                        Filename contains “{{ current_search }}”
+                    </strong>
+                {% endif %}
 
-    <div class="chart-card">
+                {% if current_risk %}
+                    <strong>
+                        Risk equals {{ current_risk }}
+                    </strong>
+                {% endif %}
 
-        <div class="card-header">
+                <small>
+                    {{ record_total }} matching record{% if record_total != 1 %}s{% endif %}
+                </small>
+            </div>
+        {% endif %}
 
-            <h3>
+    </section>
 
-                <i class="fa-solid fa-database"></i>
 
-                Scan Records
+    <!-- =====================================================
+         COMPLETE SCAN RECORD TABLE
+    ====================================================== -->
 
-            </h3>
+    <section
+        class="histx-records-panel"
+        aria-labelledby="historyRecordsTitle"
+    >
 
-        </div>
+        <header class="histx-section-header histx-section-header--records">
 
-        <table class="recent-table">
+            <div class="histx-section-header__identity">
 
-            <thead>
+                <span class="histx-section-header__icon">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                </span>
 
-                <tr>
+                <div>
+                    <p class="histx-eyebrow">IMMUTABLE ANALYSIS TRAIL</p>
+                    <h2 id="historyRecordsTitle">Complete Scan Records</h2>
+                    <p>
+                        Latest records appear first. Expand a row to inspect
+                        file metadata, cryptographic hashes and AI guidance.
+                    </p>
+                </div>
 
-                    <th>ID</th>
+            </div>
 
-                    <th>Filename</th>
 
-                    <th>Prediction</th>
+            <div class="histx-record-count">
+                <span>
+                    {{ page_start }}–{{ page_end }}
+                </span>
+                of
+                <strong>{{ record_total }}</strong>
+            </div>
 
-                    <th>Risk</th>
+        </header>
 
-                    <th>Confidence</th>
 
-                    <th>Scan Time</th>
+        {% if scans %}
 
-                    <th>Action</th>
+            <div
+                class="histx-table-scroll"
+                tabindex="0"
+                aria-label="Scrollable scan history table"
+            >
 
-                </tr>
+                <table
+                    class="histx-record-table"
+                    id="historyTable"
+                >
 
-            </thead>
+                    <caption class="histx-sr-only">
+                        Scan history records showing file intelligence,
+                        prediction, risk, confidence, scan time and actions.
+                    </caption>
 
-            <tbody>
+                    <thead>
+                        <tr>
+                            <th scope="col">File Intelligence</th>
+                            <th scope="col">Prediction</th>
+                            <th scope="col">Risk Level</th>
+                            <th scope="col">Confidence</th>
+                            <th scope="col">File Metadata</th>
+                            <th scope="col">Scan Time</th>
+                            <th scope="col">
+                                <span class="histx-sr-only">Record actions</span>
+                            </th>
+                        </tr>
+                    </thead>
 
-            {% for scan in scans %}
 
-                <tr>
+                    <tbody id="historyTableBody">
 
-                    <td>{{ scan.id }}</td>
+                        {% for scan in scans %}
 
-                    <td>{{ scan.filename }}</td>
+                            {% set prediction_value = scan.prediction|default('Unknown', true)|string %}
+                            {% set prediction_lower = prediction_value|lower %}
+                            {% set risk_value = scan.risk|default('Unknown', true)|string %}
+                            {% set risk_lower = risk_value|lower %}
+                            {% set extension_value = scan.extension|default('', true)|string %}
+                            {% set file_size_value = scan.filesize|default(0, true)|int %}
+                            {% set entropy_value = scan.entropy|default(0, true) %}
+                            {% set md5_value = scan.md5|default('', true)|string %}
+                            {% set sha256_value = scan.sha256|default('', true)|string %}
+                            {% set recommendation_value = scan.recommendation|default('No recommendation is available for this record.', true)|string %}
+                            {% set confidence_text = scan.confidence|default('', true)|string %}
 
-                    <td>
+                            {% if scan.confidence is number %}
+                                {% set confidence_is_valid = true %}
+                                {% set confidence_number = scan.confidence|float %}
+                            {% elif confidence_text and confidence_text[:2] not in ["b'", 'b"'] %}
+                                {% set confidence_is_valid = true %}
+                                {% set confidence_number = confidence_text|replace('%', '')|float %}
+                            {% else %}
+                                {% set confidence_is_valid = false %}
+                                {% set confidence_number = 0 %}
+                            {% endif %}
 
-                        {% if scan.prediction=="Safe" %}
+                            {% if confidence_number < 0 %}
+                                {% set confidence_number = 0 %}
+                            {% elif confidence_number > 100 %}
+                                {% set confidence_number = 100 %}
+                            {% endif %}
 
-                        <span class="safe-badge">
 
-                            {{ scan.prediction }}
+                            {% if prediction_lower in ['safe', 'benign', 'clean'] %}
+                                {% set prediction_class = 'safe' %}
+                                {% set prediction_icon = 'fa-shield-check' %}
+                            {% elif prediction_lower in ['suspicious', 'review', 'unknown'] %}
+                                {% set prediction_class = 'warning' %}
+                                {% set prediction_icon = 'fa-triangle-exclamation' %}
+                            {% elif prediction_lower == 'error' %}
+                                {% set prediction_class = 'error' %}
+                                {% set prediction_icon = 'fa-circle-xmark' %}
+                            {% else %}
+                                {% set prediction_class = 'danger' %}
+                                {% set prediction_icon = 'fa-shield-virus' %}
+                            {% endif %}
 
-                        </span>
 
+                            {% if risk_lower == 'low' %}
+                                {% set risk_class = 'low' %}
+                            {% elif risk_lower == 'medium' %}
+                                {% set risk_class = 'medium' %}
+                            {% elif risk_lower == 'high' %}
+                                {% set risk_class = 'high' %}
+                            {% elif risk_lower == 'critical' %}
+                                {% set risk_class = 'critical' %}
+                            {% else %}
+                                {% set risk_class = 'unknown' %}
+                            {% endif %}
+
+
+                            {% if extension_value %}
+                                {% set extension_label = extension_value|replace('.', '')|upper %}
+                            {% else %}
+                                {% set extension_label = 'FILE' %}
+                            {% endif %}
+
+
+                            {% if file_size_value >= 1073741824 %}
+                                {% set file_size_label = '%.2f GB'|format(file_size_value / 1073741824) %}
+                            {% elif file_size_value >= 1048576 %}
+                                {% set file_size_label = '%.2f MB'|format(file_size_value / 1048576) %}
+                            {% elif file_size_value >= 1024 %}
+                                {% set file_size_label = '%.1f KB'|format(file_size_value / 1024) %}
+                            {% elif file_size_value > 0 %}
+                                {% set file_size_label = file_size_value|string + ' B' %}
+                            {% else %}
+                                {% set file_size_label = 'Size unavailable' %}
+                            {% endif %}
+
+
+                            <tr
+                                class="histx-record-row"
+                                data-history-row
+                                data-scan-id="{{ scan.id }}"
+                                data-filename="{{ scan.filename|e }}"
+                                data-prediction="{{ prediction_lower|e }}"
+                                data-risk="{{ risk_lower|e }}"
+                                data-confidence="{{ confidence_number }}"
+                                data-search-text="{{ scan.filename|lower|e }} {{ prediction_lower|e }} {{ risk_lower|e }} {{ extension_label|lower|e }}"
+                            >
+
+                                <td>
+
+                                    <div class="histx-file-cell">
+
+                                        <span
+                                            class="histx-file-cell__icon"
+                                            aria-hidden="true"
+                                        >
+                                            {% if extension_label in ['EXE', 'DLL', 'SYS', 'DRV', 'COM'] %}
+                                                <i class="fa-solid fa-gears"></i>
+                                            {% elif extension_label in ['ZIP', 'RAR', '7Z', 'TAR', 'GZ'] %}
+                                                <i class="fa-solid fa-file-zipper"></i>
+                                            {% elif extension_label in ['PDF', 'DOC', 'DOCX'] %}
+                                                <i class="fa-solid fa-file-lines"></i>
+                                            {% elif extension_label in ['XLS', 'XLSX', 'CSV'] %}
+                                                <i class="fa-solid fa-file-excel"></i>
+                                            {% elif extension_label in ['JPG', 'JPEG', 'PNG', 'GIF'] %}
+                                                <i class="fa-solid fa-file-image"></i>
+                                            {% elif extension_label in ['JSON', 'TXT', 'XML', 'SQL'] %}
+                                                <i class="fa-solid fa-file-code"></i>
+                                            {% elif extension_label in ['PCAP', 'PCAPNG'] %}
+                                                <i class="fa-solid fa-network-wired"></i>
+                                            {% else %}
+                                                <i class="fa-solid fa-file-shield"></i>
+                                            {% endif %}
+                                        </span>
+
+
+                                        <div class="histx-file-cell__identity">
+
+                                            <strong title="{{ scan.filename|e }}">
+                                                {{ scan.filename }}
+                                            </strong>
+
+                                            <div class="histx-file-cell__meta">
+                                                <span>
+                                                    Record #{{ scan.id }}
+                                                </span>
+
+                                                <span aria-hidden="true">•</span>
+
+                                                <span>
+                                                    {{ extension_label }}
+                                                </span>
+
+                                                <span aria-hidden="true">•</span>
+
+                                                <span>
+                                                    {{ file_size_label }}
+                                                </span>
+                                            </div>
+
+                                        </div>
+
+                                    </div>
+
+                                </td>
+
+
+                                <td>
+
+                                    <span
+                                        class="histx-prediction-badge histx-prediction-badge--{{ prediction_class }}"
+                                    >
+                                        <i class="fa-solid {{ prediction_icon }}"></i>
+                                        {{ prediction_value }}
+                                    </span>
+
+                                </td>
+
+
+                                <td>
+
+                                    <span
+                                        class="histx-risk-badge histx-risk-badge--{{ risk_class }}"
+                                    >
+                                        <span class="histx-risk-badge__dot"></span>
+                                        {{ risk_value }}
+                                    </span>
+
+                                </td>
+
+
+                                <td>
+
+                                    <div class="histx-confidence-cell">
+
+                                        {% if confidence_is_valid %}
+                                            <div>
+                                                <strong>
+                                                    {{ '%.2f'|format(confidence_number) }}%
+                                                </strong>
+
+                                                <span>
+                                                    AI confidence
+                                                </span>
+                                            </div>
+
+                                            <div
+                                                class="histx-confidence-meter"
+                                                role="progressbar"
+                                                aria-label="AI confidence"
+                                                aria-valuemin="0"
+                                                aria-valuemax="100"
+                                                aria-valuenow="{{ confidence_number|round(0)|int }}"
+                                            >
+                                                <span
+                                                    style="--histx-confidence: {{ confidence_number }}%;"
+                                                ></span>
+                                            </div>
+                                        {% else %}
+                                            <div>
+                                                <strong class="histx-text-muted">
+                                                    Unavailable
+                                                </strong>
+
+                                                <span>
+                                                    Legacy value requires repair
+                                                </span>
+                                            </div>
+                                        {% endif %}
+
+                                    </div>
+
+                                </td>
+
+
+                                <td>
+
+                                    <dl class="histx-metadata-cell">
+
+                                        <div>
+                                            <dt>Entropy</dt>
+                                            <dd>
+                                                {% if entropy_value is number %}
+                                                    {{ '%.4f'|format(entropy_value|float) }}
+                                                {% else %}
+                                                    —
+                                                {% endif %}
+                                            </dd>
+                                        </div>
+
+                                        <div>
+                                            <dt>Extension</dt>
+                                            <dd>{{ extension_label }}</dd>
+                                        </div>
+
+                                    </dl>
+
+                                </td>
+
+
+                                <td>
+
+                                    <time
+                                        class="histx-time-cell"
+                                        datetime="{{ scan.scan_time|e }}"
+                                    >
+                                        <i class="fa-regular fa-clock"></i>
+                                        <span>{{ scan.scan_time }}</span>
+                                    </time>
+
+                                </td>
+
+
+                                <td>
+
+                                    <div class="histx-row-actions">
+
+                                        <a
+                                            class="histx-row-action histx-row-action--inspect"
+                                            href="#scan-details-{{ scan.id }}"
+                                            aria-label="Inspect record {{ scan.id }}"
+                                        >
+                                            <i class="fa-solid fa-magnifying-glass-chart"></i>
+                                            <span>Inspect</span>
+                                        </a>
+
+
+                                        {% if current_user.is_authenticated and current_user.role == 'admin' %}
+                                            <a
+                                                class="histx-row-action histx-row-action--delete"
+                                                href="{{ url_for('delete', id=scan.id) }}"
+                                                aria-label="Delete scan record for {{ scan.filename|e }}"
+                                                data-delete-scan
+                                                data-scan-id="{{ scan.id }}"
+                                                data-scan-filename="{{ scan.filename|e }}"
+                                            >
+                                                <i class="fa-solid fa-trash-can"></i>
+                                                <span>Delete</span>
+                                            </a>
+                                        {% else %}
+                                            <span
+                                                class="histx-row-action histx-row-action--locked"
+                                                aria-label="Delete access restricted to administrators"
+                                            >
+                                                <i class="fa-solid fa-lock"></i>
+                                                <span>Restricted</span>
+                                            </span>
+                                        {% endif %}
+
+                                    </div>
+
+                                </td>
+
+                            </tr>
+
+
+                            <tr class="histx-detail-row">
+
+                                <td colspan="7">
+
+                                    <details
+                                        class="histx-record-details"
+                                        id="scan-details-{{ scan.id }}"
+                                    >
+
+                                        <summary>
+
+                                            <span>
+                                                <i class="fa-solid fa-fingerprint"></i>
+                                                Open complete intelligence record
+                                            </span>
+
+                                            <small>
+                                                Metadata, hashes and AI recommendation
+                                            </small>
+
+                                            <i
+                                                class="fa-solid fa-chevron-down"
+                                                aria-hidden="true"
+                                            ></i>
+
+                                        </summary>
+
+
+                                        <div class="histx-record-details__content">
+
+                                            <section class="histx-detail-card">
+
+                                                <header>
+                                                    <span>
+                                                        <i class="fa-solid fa-file-shield"></i>
+                                                    </span>
+
+                                                    <div>
+                                                        <small>FILE IDENTITY</small>
+                                                        <h3>{{ scan.filename }}</h3>
+                                                    </div>
+                                                </header>
+
+
+                                                <dl class="histx-detail-list">
+
+                                                    <div>
+                                                        <dt>Record identifier</dt>
+                                                        <dd>#{{ scan.id }}</dd>
+                                                    </div>
+
+                                                    <div>
+                                                        <dt>Extension</dt>
+                                                        <dd>{{ extension_label }}</dd>
+                                                    </div>
+
+                                                    <div>
+                                                        <dt>File size</dt>
+                                                        <dd>{{ file_size_label }}</dd>
+                                                    </div>
+
+                                                    <div>
+                                                        <dt>Entropy</dt>
+                                                        <dd>
+                                                            {% if entropy_value is number %}
+                                                                {{ '%.6f'|format(entropy_value|float) }}
+                                                            {% else %}
+                                                                Unavailable
+                                                            {% endif %}
+                                                        </dd>
+                                                    </div>
+
+                                                </dl>
+
+                                            </section>
+
+
+                                            <section class="histx-detail-card">
+
+                                                <header>
+                                                    <span>
+                                                        <i class="fa-solid fa-brain"></i>
+                                                    </span>
+
+                                                    <div>
+                                                        <small>AI ASSESSMENT</small>
+                                                        <h3>{{ prediction_value }}</h3>
+                                                    </div>
+                                                </header>
+
+
+                                                <dl class="histx-detail-list">
+
+                                                    <div>
+                                                        <dt>Prediction</dt>
+                                                        <dd>{{ prediction_value }}</dd>
+                                                    </div>
+
+                                                    <div>
+                                                        <dt>Risk level</dt>
+                                                        <dd>{{ risk_value }}</dd>
+                                                    </div>
+
+                                                    <div>
+                                                        <dt>Confidence</dt>
+                                                        <dd>
+                                                            {% if confidence_is_valid %}
+                                                                {{ '%.2f'|format(confidence_number) }}%
+                                                            {% else %}
+                                                                Unavailable
+                                                            {% endif %}
+                                                        </dd>
+                                                    </div>
+
+                                                    <div>
+                                                        <dt>Completed</dt>
+                                                        <dd>{{ scan.scan_time }}</dd>
+                                                    </div>
+
+                                                </dl>
+
+                                            </section>
+
+
+                                            <section class="histx-detail-card histx-detail-card--hashes">
+
+                                                <header>
+                                                    <span>
+                                                        <i class="fa-solid fa-hashtag"></i>
+                                                    </span>
+
+                                                    <div>
+                                                        <small>CRYPTOGRAPHIC IDENTITY</small>
+                                                        <h3>File Hashes</h3>
+                                                    </div>
+                                                </header>
+
+
+                                                <div class="histx-hash-record">
+
+                                                    <span>MD5</span>
+
+                                                    <code>
+                                                        {{ md5_value if md5_value else 'Unavailable' }}
+                                                    </code>
+
+                                                    {% if md5_value %}
+                                                        <button
+                                                            type="button"
+                                                            aria-label="Copy MD5 hash"
+                                                            data-copy-value="{{ md5_value|e }}"
+                                                        >
+                                                            <i class="fa-regular fa-copy"></i>
+                                                        </button>
+                                                    {% endif %}
+
+                                                </div>
+
+
+                                                <div class="histx-hash-record">
+
+                                                    <span>SHA-256</span>
+
+                                                    <code>
+                                                        {{ sha256_value if sha256_value else 'Unavailable' }}
+                                                    </code>
+
+                                                    {% if sha256_value %}
+                                                        <button
+                                                            type="button"
+                                                            aria-label="Copy SHA-256 hash"
+                                                            data-copy-value="{{ sha256_value|e }}"
+                                                        >
+                                                            <i class="fa-regular fa-copy"></i>
+                                                        </button>
+                                                    {% endif %}
+
+                                                </div>
+
+                                            </section>
+
+
+                                            <section class="histx-detail-card histx-detail-card--recommendation">
+
+                                                <header>
+                                                    <span>
+                                                        <i class="fa-solid fa-user-shield"></i>
+                                                    </span>
+
+                                                    <div>
+                                                        <small>SECURITY GUIDANCE</small>
+                                                        <h3>AI Recommendation</h3>
+                                                    </div>
+                                                </header>
+
+                                                <p>
+                                                    {{ recommendation_value }}
+                                                </p>
+
+                                            </section>
+
+                                        </div>
+
+                                    </details>
+
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+
+            <footer class="histx-records-footer">
+
+                <div class="histx-records-footer__summary">
+
+                    <strong>
+                        Showing {{ page_start }}–{{ page_end }}
+                    </strong>
+
+                    <span>
+                        of {{ record_total }} matching record{% if record_total != 1 %}s{% endif %}
+                    </span>
+
+                </div>
+
+
+                {% if page_count > 1 %}
+
+                    <nav
+                        class="histx-pagination"
+                        aria-label="Scan history pagination"
+                    >
+
+                        {% if current_page > 1 %}
+                            <a
+                                class="histx-pagination__control"
+                                href="{{ url_for(
+                                    'history',
+                                    page=current_page - 1,
+                                    search=current_search,
+                                    risk=current_risk
+                                ) }}"
+                                rel="prev"
+                            >
+                                <i class="fa-solid fa-chevron-left"></i>
+                                Previous
+                            </a>
                         {% else %}
-
-                        <span class="danger-badge">
-
-                            {{ scan.prediction }}
-
-                        </span>
-
+                            <span
+                                class="histx-pagination__control is-disabled"
+                                aria-disabled="true"
+                            >
+                                <i class="fa-solid fa-chevron-left"></i>
+                                Previous
+                            </span>
                         {% endif %}
 
-                    </td>
 
-                    <td>{{ scan.risk }}</td>
+                        <div class="histx-pagination__pages">
 
-                    <td>{{ scan.confidence }}%</td>
+                            {% for page_number in range(1, page_count + 1) %}
 
-                    <td>{{ scan.scan_time }}</td>
+                                {% set show_page =
+                                    page_count <= 7
+                                    or page_number == 1
+                                    or page_number == page_count
+                                    or (
+                                        page_number >= current_page - 1
+                                        and page_number <= current_page + 1
+                                    )
+                                %}
 
-                    <td>
+                                {% set show_left_gap =
+                                    page_count > 7
+                                    and page_number == current_page - 2
+                                    and page_number > 2
+                                %}
 
-                        <a href="{{ url_for('delete', id=scan.id) }}">
+                                {% set show_right_gap =
+                                    page_count > 7
+                                    and page_number == current_page + 2
+                                    and page_number < page_count - 1
+                                %}
 
-                            <button
-                                style="background:#ff4d6d;
-                                color:white;
-                                padding:8px 14px;
-                                border:none;
-                                border-radius:8px;">
 
-                                Delete
+                                {% if show_left_gap or show_right_gap %}
+                                    <span
+                                        class="histx-pagination__ellipsis"
+                                        aria-hidden="true"
+                                    >
+                                        …
+                                    </span>
+                                {% endif %}
 
-                            </button>
 
-                        </a>
+                                {% if show_page %}
+                                    <a
+                                        class="histx-pagination__page{% if current_page == page_number %} is-active{% endif %}"
+                                        href="{{ url_for(
+                                            'history',
+                                            page=page_number,
+                                            search=current_search,
+                                            risk=current_risk
+                                        ) }}"
+                                        {% if current_page == page_number %}
+                                            aria-current="page"
+                                        {% endif %}
+                                    >
+                                        {{ page_number }}
+                                    </a>
+                                {% endif %}
 
-                    </td>
+                            {% endfor %}
 
-                </tr>
+                        </div>
 
-            {% endfor %}
 
-            </tbody>
+                        {% if current_page < page_count %}
+                            <a
+                                class="histx-pagination__control"
+                                href="{{ url_for(
+                                    'history',
+                                    page=current_page + 1,
+                                    search=current_search,
+                                    risk=current_risk
+                                ) }}"
+                                rel="next"
+                            >
+                                Next
+                                <i class="fa-solid fa-chevron-right"></i>
+                            </a>
+                        {% else %}
+                            <span
+                                class="histx-pagination__control is-disabled"
+                                aria-disabled="true"
+                            >
+                                Next
+                                <i class="fa-solid fa-chevron-right"></i>
+                            </span>
+                        {% endif %}
 
-        </table>
+                    </nav>
 
-    </div>
+                {% endif %}
 
-    <!-- ================= PAGINATION ================= -->
+            </footer>
 
-    {% if total_pages > 1 %}
 
-    <div style="margin-top:30px;text-align:center;">
+        {% else %}
 
-        {% for p in range(1,total_pages+1) %}
+            <div class="histx-empty-state">
 
-            <a href="?page={{p}}">
+                <div class="histx-empty-state__visual" aria-hidden="true">
+                    <span class="histx-empty-state__ring"></span>
+                    <span class="histx-empty-state__ring"></span>
+                    <span class="histx-empty-state__ring"></span>
+
+                    <i class="fa-solid fa-folder-open"></i>
+                </div>
+
+
+                {% if current_search or current_risk %}
+
+                    <p class="histx-eyebrow">NO MATCHING INTELLIGENCE</p>
+
+                    <h3>No records match the current filters</h3>
+
+                    <p>
+                        Reset the filename or risk query to return to the
+                        complete scan archive.
+                    </p>
+
+                    <a
+                        class="histx-primary-action"
+                        href="{{ url_for('history') }}"
+                    >
+                        <i class="fa-solid fa-rotate-left"></i>
+                        Reset Filters
+                    </a>
+
+                {% else %}
+
+                    <p class="histx-eyebrow">ARCHIVE READY</p>
+
+                    <h3>No scan records are available yet</h3>
+
+                    <p>
+                        Upload and analyse a file. The completed result will
+                        automatically appear here and update the dashboard.
+                    </p>
+
+                    <a
+                        class="histx-primary-action"
+                        href="{{ url_for('upload') }}"
+                    >
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                        Analyse First File
+                    </a>
+
+                {% endif %}
+
+            </div>
+
+        {% endif %}
+
+    </section>
+
+
+    <!-- =====================================================
+         HISTORY INTEGRITY FOOTER
+    ====================================================== -->
+
+    <footer class="histx-footer">
+
+        <div class="histx-footer__identity">
+            <span>
+                <i class="fa-solid fa-shield-halved"></i>
+            </span>
+
+            <div>
+                <strong>AI Threat Detection System</strong>
+                <small>Forensic Scan History Workspace</small>
+            </div>
+        </div>
+
+
+        <div class="histx-footer__status">
+            <span>
+                <i class="fa-solid fa-database"></i>
+                Database connected
+            </span>
+
+            <span>
+                <i class="fa-solid fa-lock"></i>
+                Audit trail protected
+            </span>
+
+            <span>
+                <i class="fa-solid fa-brain"></i>
+                XGBoost intelligence available
+            </span>
+        </div>
+
+
+        <small>
+            Page {{ current_page }} of {{ page_count if page_count > 0 else 1 }}
+        </small>
+
+    </footer>
+
+
+    <!-- =====================================================
+         FUTURE DELETE CONFIRMATION MODAL
+         Activated later by the corresponding history.js.
+         Existing delete links continue to work without JavaScript.
+    ====================================================== -->
+
+    <div
+        class="histx-modal"
+        id="historyDeleteModal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="historyDeleteModalTitle"
+        aria-hidden="true"
+    >
+
+        <div
+            class="histx-modal__backdrop"
+            data-close-history-delete
+        ></div>
+
+
+        <section class="histx-delete-dialog">
+
+            <button
+                class="histx-delete-dialog__close"
+                id="closeHistoryDeleteModal"
+                type="button"
+                aria-label="Close delete confirmation"
+            >
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+
+            <div class="histx-delete-dialog__icon">
+                <i class="fa-solid fa-trash-can"></i>
+                <span></span>
+            </div>
+
+
+            <p class="histx-eyebrow">PERMANENT DATABASE ACTION</p>
+
+            <h2 id="historyDeleteModalTitle">
+                Delete this scan record?
+            </h2>
+
+
+            <p>
+                The record for
+                <strong id="historyDeleteFilename">this file</strong>
+                will be removed from the scan-history database. This action
+                cannot be reversed.
+            </p>
+
+
+            <div class="histx-delete-dialog__actions">
 
                 <button
-                    class="{% if page==p %}primary-btn{% else %}secondary-btn{% endif %}">
-
-                    {{p}}
-
+                    class="histx-filter-button histx-filter-button--secondary"
+                    id="cancelHistoryDelete"
+                    type="button"
+                >
+                    Cancel
                 </button>
 
-            </a>
+                <a
+                    class="histx-filter-button histx-filter-button--danger"
+                    id="confirmHistoryDelete"
+                    href="#"
+                >
+                    <i class="fa-solid fa-trash-can"></i>
+                    Delete Record
+                </a>
 
-        {% endfor %}
+            </div>
+
+        </section>
 
     </div>
 
-    {% endif %}
 
-</div>
+    <!-- Toast container for the future history.js -->
+    <div
+        class="histx-toast-region"
+        id="historyToastRegion"
+        aria-live="polite"
+        aria-atomic="false"
+    ></div>
+
+</main>
+
+
+{#
+   history.js is intentionally not loaded here yet.
+
+   The existing history(1).js does not match the current backend table:
+   - it expects #riskFilter instead of #historyRiskFilter
+   - it expects #historyTable but reads row.cells[8], although the old table
+     had only seven columns
+   - it does not preserve server-side pagination/filter state
+
+   A new isolated history.js should be added only after the matching
+   history.css is installed.
+#}
 
 {% endblock %}

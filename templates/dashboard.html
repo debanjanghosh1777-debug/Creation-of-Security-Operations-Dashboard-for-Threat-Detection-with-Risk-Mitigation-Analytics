@@ -2,1547 +2,2467 @@
 
 {% block content %}
 
-<div class="dashboard-wrapper">
-    
-   
-<!-- ================= ADVANCED HERO ================= -->
-<!-- ================= PREMIUM TOP CARDS ================= -->
+{# =========================================================
+   AI THREAT DETECTION — ENTERPRISE SOC DASHBOARD
+   File: templates/dashboard.html
 
-<div class="premium-top-grid">
+   Existing backend values preserved:
+   user, current_user.role, stats, score, rate, recent,
+   line, pie, bar, monthly_chart, extension_chart
 
-    <div class="premium-card">
-        <div class="premium-icon">
-            <i class="fa-solid fa-user-shield"></i>
-        </div>
+   Existing routes preserved:
+   upload, history
+========================================================= #}
 
-        <h4>Administrator</h4>
-        <p>{{ user }}</p>
+{% set total_scans = stats.total if stats else 0 %}
+{% set safe_scans = stats.safe if stats else 0 %}
+{% set malicious_scans = stats.malicious if stats else 0 %}
+{% set critical_scans = stats.critical if stats else 0 %}
+{% set last_scan_value = stats.last_scan if stats else "No scans yet" %}
+{% set security_score = score if score is defined else 0 %}
+{% set threat_rate = rate if rate is defined else 0 %}
 
-        <span>{{ current_user.role }}</span>
+<a class="soc-skip-link" href="#socMainContent">
+    Skip to dashboard content
+</a>
+
+<main
+    class="soc-dashboard"
+    id="socDashboard"
+    data-total-scans="{{ total_scans }}"
+    data-safe-scans="{{ safe_scans }}"
+    data-malicious-scans="{{ malicious_scans }}"
+    data-critical-scans="{{ critical_scans }}"
+    data-security-score="{{ security_score }}"
+    data-threat-rate="{{ threat_rate }}"
+    data-current-user="{{ user|e }}"
+>
+
+    <!-- =====================================================
+         AMBIENT VISUAL SYSTEM
+         Activated by the future dashboard.js
+    ====================================================== -->
+
+    <div class="soc-ambient" aria-hidden="true">
+        <canvas class="soc-ambient__mesh" id="dashboardMeshCanvas"></canvas>
+        <canvas class="soc-ambient__traffic" id="dashboardTrafficCanvas"></canvas>
+
+        <div class="soc-ambient__gradient soc-ambient__gradient--cyan"></div>
+        <div class="soc-ambient__gradient soc-ambient__gradient--blue"></div>
+        <div class="soc-ambient__gradient soc-ambient__gradient--violet"></div>
+
+        <div class="soc-ambient__grid"></div>
+        <div class="soc-ambient__noise"></div>
+        <div class="soc-ambient__vignette"></div>
+        <div class="soc-cursor-light" id="dashboardCursorLight"></div>
     </div>
 
-    <div class="premium-card">
 
-        <div class="premium-icon">
-            <i class="fa-solid fa-satellite-dish"></i>
-        </div>
+    <!-- =====================================================
+         DASHBOARD BOOT SEQUENCE
+    ====================================================== -->
 
-        <h4>System Status</h4>
+    <div
+        class="soc-boot"
+        id="dashboardBootSequence"
+        aria-hidden="true"
+    >
+        <div class="soc-boot__core">
+            <span class="soc-boot__ring soc-boot__ring--one"></span>
+            <span class="soc-boot__ring soc-boot__ring--two"></span>
+            <span class="soc-boot__ring soc-boot__ring--three"></span>
 
-        <p class="online-text">
-            ● ONLINE
-        </p>
-
-        <span>All Services Running</span>
-
-    </div>
-
-    <div class="premium-card">
-
-        <div class="premium-icon">
-            <i class="fa-solid fa-brain"></i>
-        </div>
-
-        <h4>AI Engine</h4>
-
-        <p>XGBoost</p>
-
-        <span>{{ score }}% Confidence</span>
-
-    </div>
-
-</div>
-<div class="hero-section hero-v2">
-
-    <canvas id="heroParticles"></canvas>
-
-    <!-- CYBER BACKGROUND -->
-
-    <div class="hero-matrix"></div>
-    <div class="hero-grid-lines"></div>
-
-    <!-- LEFT CONTENT -->
-
-    <div class="hero-v2-left">
-
-        <div class="hero-badge">
-            <i class="fa-solid fa-shield-halved"></i>
-            AI POWERED SECURITY
-        </div>
-
-        <h1>
-            Intelligent Threat
-            <span>Detection</span>
-            Command Center
-        </h1>
-
-        <p>
-            Monitor threats, analyse uploaded files and protect your system
-            using real-time AI security intelligence.
-        </p>
-
-        <div class="hero-buttons">
-
-            <a href="{{ url_for('upload') }}" class="primary-btn">
-                <i class="fa-solid fa-cloud-arrow-up"></i>
-                Scan New File
-            </a>
-
-            <a href="{{ url_for('history') }}" class="secondary-btn">
-                <i class="fa-solid fa-clock-rotate-left"></i>
-                View Scan History
-            </a>
-
-        </div>
-
-        <div class="hero-feature-row">
-
-            <div class="hero-feature-card">
-                <i class="fa-solid fa-wave-square"></i>
-
-                <div>
-                    <strong>Real-Time</strong>
-                    <span>Monitoring</span>
-                </div>
-            </div>
-
-            <div class="hero-feature-card">
-                <i class="fa-solid fa-brain"></i>
-
-                <div>
-                    <strong>AI Engine</strong>
-                    <span>XGBoost</span>
-                </div>
-            </div>
-
-            <div class="hero-feature-card">
+            <div class="soc-boot__shield">
                 <i class="fa-solid fa-shield-halved"></i>
+            </div>
+        </div>
+
+        <p class="soc-boot__title">
+            Initializing Security Operations Dashboard
+        </p>
+
+        <div class="soc-boot__progress">
+            <span id="dashboardBootBar"></span>
+        </div>
+
+        <span class="soc-boot__percentage" id="dashboardBootPercentage">
+            0%
+        </span>
+    </div>
+
+
+    <!-- =====================================================
+         COMMAND HEADER
+    ====================================================== -->
+
+    <header class="soc-command-header">
+
+        <div class="soc-command-header__identity">
+
+            <nav class="soc-breadcrumb" aria-label="Dashboard breadcrumb">
+                <span>Security Operations</span>
+                <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+                <strong>Command Dashboard</strong>
+            </nav>
+
+            <div class="soc-command-title-row">
 
                 <div>
-                    <strong>24/7</strong>
-                    <span>Protection</span>
+                    <p class="soc-eyebrow">
+                        AI-POWERED THREAT INTELLIGENCE
+                    </p>
+
+                    <h1 id="socMainContent">
+                        Security Operations Command Center
+                    </h1>
+
+                    <p class="soc-command-subtitle">
+                        Real-time malware intelligence, AI risk assessment,
+                        scan analytics and infrastructure protection.
+                    </p>
                 </div>
+
+                <div class="soc-command-status" aria-label="System operational">
+                    <span class="soc-command-status__signal"></span>
+
+                    <div>
+                        <small>SECURITY FABRIC</small>
+                        <strong>OPERATIONAL</strong>
+                    </div>
+                </div>
+
             </div>
 
         </div>
 
-    </div>
 
-    <!-- CENTER SHIELD -->
+        <div class="soc-command-header__controls">
 
-    <div class="hero-v2-center">
+            <div class="soc-command-clock">
+                <span>LOCAL COMMAND TIME</span>
+                <strong id="dashboardLocalClock">--:--:--</strong>
+                <small id="dashboardLocalDate">Loading date</small>
+            </div>
 
-        <div class="security-orbit">
+            <button
+                class="soc-icon-button"
+                id="dashboardSoundToggle"
+                type="button"
+                aria-label="Enable dashboard interface sounds"
+                aria-pressed="false"
+                data-tooltip="Interface sound"
+            >
+                <i class="fa-solid fa-volume-xmark"></i>
+            </button>
 
-            <div class="orbit-ring ring-one"></div>
-            <div class="orbit-ring ring-two"></div>
-            <div class="orbit-ring ring-three"></div>
+            <button
+                class="soc-icon-button"
+                id="dashboardDensityToggle"
+                type="button"
+                aria-label="Toggle compact dashboard layout"
+                aria-pressed="false"
+                data-tooltip="Display density"
+            >
+                <i class="fa-solid fa-table-cells-large"></i>
+            </button>
 
-            <div class="energy-orbit energy-orbit-one"></div>
-            <div class="energy-orbit energy-orbit-two"></div>
+            <button
+                class="soc-icon-button soc-icon-button--notification"
+                id="openNotificationCenter"
+                type="button"
+                aria-label="Open security notification center"
+                aria-expanded="false"
+                aria-controls="securityNotificationCenter"
+                data-tooltip="Notifications"
+            >
+                <i class="fa-solid fa-bell"></i>
 
-            <span class="energy-dot dot-one"></span>
-            <span class="energy-dot dot-two"></span>
-            <span class="energy-dot dot-three"></span>
-            <span class="energy-dot dot-four"></span>
+                <span
+                    class="soc-icon-button__badge"
+                    id="dashboardNotificationCount"
+                >
+                    {{ critical_scans }}
+                </span>
+            </button>
 
-            <div class="new-hologram">
+            <button
+                class="soc-command-search-button"
+                id="openCommandPalette"
+                type="button"
+                aria-haspopup="dialog"
+                aria-controls="dashboardCommandPalette"
+            >
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <span>Search dashboard</span>
+                <kbd>⌘ K</kbd>
+            </button>
 
-    <div class="new-orbit orbit-a"></div>
-    <div class="new-orbit orbit-b"></div>
+        </div>
 
-    <div class="new-shield">
-        <div class="new-scan-line"></div>
+    </header>
 
-        <img
-            src="{{ url_for('static', filename='images/logo.png') }}"
-            alt="AI Threat Detection Logo"
+
+    <!-- =====================================================
+         LIVE SECURITY INTELLIGENCE RIBBON
+    ====================================================== -->
+
+    <section
+        class="soc-intelligence-ribbon"
+        aria-label="Live security intelligence"
+    >
+
+        <div class="soc-intelligence-ribbon__label">
+            <span class="soc-live-dot"></span>
+            LIVE SECURITY FEED
+        </div>
+
+        <div class="soc-intelligence-ribbon__viewport">
+            <div class="soc-intelligence-ribbon__track" id="securityTickerTrack">
+
+                <span>
+                    <i class="fa-solid fa-satellite-dish"></i>
+                    Network telemetry online
+                </span>
+
+                <span>
+                    <i class="fa-solid fa-brain"></i>
+                    XGBoost inference engine active
+                </span>
+
+                <span>
+                    <i class="fa-solid fa-database"></i>
+                    Local threat database connected
+                </span>
+
+                <span>
+                    <i class="fa-solid fa-lock"></i>
+                    Secure session encryption enabled
+                </span>
+
+                <span>
+                    <i class="fa-solid fa-shield-virus"></i>
+                    {{ malicious_scans }} detected threat records
+                </span>
+
+                <span>
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    {{ critical_scans }} critical incidents require review
+                </span>
+
+            </div>
+        </div>
+
+        <div class="soc-intelligence-ribbon__latency">
+            <small>ENGINE LATENCY</small>
+            <strong id="engineLatencyValue">12 ms</strong>
+        </div>
+
+    </section>
+
+
+    <!-- =====================================================
+         HERO COMMAND CENTER
+    ====================================================== -->
+
+    <section class="soc-hero" aria-labelledby="socHeroTitle">
+
+        <canvas
+            class="soc-hero__particles"
+            id="heroParticles"
+            aria-hidden="true"
+        ></canvas>
+
+        <div class="soc-hero__grid" aria-hidden="true"></div>
+        <div class="soc-hero__scan" aria-hidden="true"></div>
+
+
+        <!-- Hero introduction -->
+
+        <div class="soc-hero__intro">
+
+            <div class="soc-posture-badge">
+
+                {% if critical_scans > 0 %}
+                    <span class="soc-posture-badge__dot soc-posture-badge__dot--critical"></span>
+                    CRITICAL THREAT POSTURE
+                {% elif malicious_scans > 0 %}
+                    <span class="soc-posture-badge__dot soc-posture-badge__dot--warning"></span>
+                    ELEVATED THREAT POSTURE
+                {% else %}
+                    <span class="soc-posture-badge__dot soc-posture-badge__dot--safe"></span>
+                    STABLE THREAT POSTURE
+                {% endif %}
+
+            </div>
+
+            <p class="soc-hero__welcome">
+                Welcome back, <strong>{{ user }}</strong>
+            </p>
+
+            <h2 id="socHeroTitle">
+                Intelligent defence,
+                <span>continuous visibility.</span>
+            </h2>
+
+            <p class="soc-hero__description">
+                Analyse uploaded files, investigate high-risk detections and
+                monitor your security environment through one unified AI
+                operations workspace.
+            </p>
+
+
+            <div class="soc-hero__actions">
+
+                <a
+                    class="soc-button soc-button--primary"
+                    href="{{ url_for('upload') }}"
+                    data-sound="primary"
+                >
+                    <i class="fa-solid fa-cloud-arrow-up"></i>
+
+                    <span>
+                        <strong>Upload &amp; Scan</strong>
+                        <small>Run AI malware analysis</small>
+                    </span>
+
+                    <i class="fa-solid fa-arrow-right"></i>
+                </a>
+
+                <a
+                    class="soc-button soc-button--secondary"
+                    href="{{ url_for('history') }}"
+                    data-sound="secondary"
+                >
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                    View Scan History
+                </a>
+
+                <button
+                    class="soc-button soc-button--ghost"
+                    id="openQuickAssessment"
+                    type="button"
+                    data-sound="secondary"
+                >
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                    Quick Assessment
+                </button>
+
+            </div>
+
+
+            <div class="soc-capability-grid">
+
+                <article class="soc-capability">
+                    <span class="soc-capability__icon">
+                        <i class="fa-solid fa-file-shield"></i>
+                    </span>
+
+                    <div>
+                        <strong>File Intelligence</strong>
+                        <small>Static feature analysis</small>
+                    </div>
+                </article>
+
+                <article class="soc-capability">
+                    <span class="soc-capability__icon">
+                        <i class="fa-solid fa-brain"></i>
+                    </span>
+
+                    <div>
+                        <strong>AI Classification</strong>
+                        <small>XGBoost risk prediction</small>
+                    </div>
+                </article>
+
+                <article class="soc-capability">
+                    <span class="soc-capability__icon">
+                        <i class="fa-solid fa-chart-line"></i>
+                    </span>
+
+                    <div>
+                        <strong>Threat Analytics</strong>
+                        <small>Operational intelligence</small>
+                    </div>
+                </article>
+
+            </div>
+
+        </div>
+
+
+        <!-- Holographic command core -->
+
+        <div
+            class="soc-hero__core"
+            id="hologramStage"
+            aria-label="AI security engine visualization"
         >
-    </div>
 
-    <div class="new-light-beam"></div>
-    <div class="new-platform"></div>
-
-</div>
-
-            <div class="hologram-beam"></div>
-
-            <div class="hologram-platform">
-                <div class="platform-ring platform-ring-one"></div>
-                <div class="platform-ring platform-ring-two"></div>
-                <div class="platform-ring platform-ring-three"></div>
+            <div class="soc-core-orbit soc-core-orbit--outer">
+                <span class="soc-core-node soc-core-node--one"></span>
+                <span class="soc-core-node soc-core-node--two"></span>
+                <span class="soc-core-node soc-core-node--three"></span>
             </div>
 
-        </div>
+            <div class="soc-core-orbit soc-core-orbit--middle"></div>
+            <div class="soc-core-orbit soc-core-orbit--inner"></div>
 
-    </div>
+            <div class="soc-core-axis soc-core-axis--horizontal"></div>
+            <div class="soc-core-axis soc-core-axis--vertical"></div>
 
-    <!-- RIGHT INFORMATION CARDS -->
-
-    <div class="hero-v2-right">
-
-        <div class="hero-data-card threat-level-card">
-
-            <div class="data-card-top">
-                <span>THREAT LEVEL</span>
-                <i class="fa-solid fa-chart-line"></i>
+            <div class="soc-core-data-label soc-core-data-label--top">
+                AI NODE // 01
             </div>
 
-            {% if stats.critical > 0 %}
-                <h2 class="danger-text">CRITICAL</h2>
-            {% elif stats.malicious > 0 %}
-                <h2 class="warning-text">MEDIUM</h2>
-            {% else %}
-                <h2 class="safe-text">LOW</h2>
-            {% endif %}
+            <div class="soc-core-data-label soc-core-data-label--right">
+                CONFIDENCE // {{ security_score }}%
+            </div>
 
-            <div class="mini-line-chart">
+            <div class="soc-core-data-label soc-core-data-label--bottom">
+                XGBOOST // ACTIVE
+            </div>
+
+            <div class="soc-core-data-label soc-core-data-label--left">
+                SOC // ONLINE
+            </div>
+
+            <div class="soc-core-reactor" id="holoShield">
+
+                <span class="soc-core-reactor__energy"></span>
+                <span class="soc-core-reactor__pulse"></span>
+
+                <div class="soc-core-reactor__shield">
+                    <i class="fa-solid fa-shield-halved"></i>
+                    <i class="fa-solid fa-lock"></i>
+                </div>
+
+                <div class="soc-core-reactor__scan"></div>
+
+            </div>
+
+            <div class="soc-core-platform">
                 <span></span>
             </div>
 
+            <div class="soc-core-state">
+                <span class="soc-live-dot"></span>
+                ENGINE ACTIVE
+            </div>
+
         </div>
 
-        <div class="hero-data-card">
 
-            <div class="data-card-icon cyan-icon">
-                <i class="fa-solid fa-file-shield"></i>
+        <!-- Hero posture panel -->
+
+        <aside class="soc-hero__posture" aria-label="Current security posture">
+
+            <div class="soc-posture-score-card">
+
+                <div class="soc-posture-score-card__header">
+                    <div>
+                        <span>SECURITY HEALTH</span>
+                        <strong>Posture Score</strong>
+                    </div>
+
+                    <i class="fa-solid fa-shield-heart"></i>
+                </div>
+
+                <div
+                    class="soc-score-gauge"
+                    id="securityScoreGauge"
+                    data-score="{{ security_score }}"
+                    role="img"
+                    aria-label="Security posture score {{ security_score }} out of 100"
+                >
+                    <div class="soc-score-gauge__inner">
+                        <strong>{{ security_score }}</strong>
+                        <span>/ 100</span>
+                    </div>
+                </div>
+
+                <div class="soc-posture-score-card__footer">
+
+                    {% if security_score >= 80 %}
+                        <span class="soc-status-chip soc-status-chip--safe">
+                            Strong
+                        </span>
+                        <small>Security controls are performing optimally.</small>
+                    {% elif security_score >= 50 %}
+                        <span class="soc-status-chip soc-status-chip--warning">
+                            Review
+                        </span>
+                        <small>Investigate suspicious scan activity.</small>
+                    {% else %}
+                        <span class="soc-status-chip soc-status-chip--critical">
+                            At Risk
+                        </span>
+                        <small>Immediate security review is recommended.</small>
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+
+            <div class="soc-posture-metrics">
+
+                <article class="soc-posture-metric">
+                    <span class="soc-posture-metric__icon soc-posture-metric__icon--danger">
+                        <i class="fa-solid fa-virus"></i>
+                    </span>
+
+                    <div>
+                        <small>ACTIVE THREATS</small>
+                        <strong>{{ malicious_scans }}</strong>
+                    </div>
+
+                    <span class="soc-posture-metric__trend">
+                        DETECTED
+                    </span>
+                </article>
+
+                <article class="soc-posture-metric">
+                    <span class="soc-posture-metric__icon soc-posture-metric__icon--warning">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                    </span>
+
+                    <div>
+                        <small>CRITICAL</small>
+                        <strong>{{ critical_scans }}</strong>
+                    </div>
+
+                    <span class="soc-posture-metric__trend">
+                        PRIORITY
+                    </span>
+                </article>
+
+                <article class="soc-posture-metric">
+                    <span class="soc-posture-metric__icon soc-posture-metric__icon--safe">
+                        <i class="fa-solid fa-crosshairs"></i>
+                    </span>
+
+                    <div>
+                        <small>AI CONFIDENCE</small>
+                        <strong>{{ security_score }}%</strong>
+                    </div>
+
+                    <span class="soc-posture-metric__trend">
+                        MODEL
+                    </span>
+                </article>
+
+                <article class="soc-posture-metric">
+                    <span class="soc-posture-metric__icon">
+                        <i class="fa-solid fa-clock"></i>
+                    </span>
+
+                    <div>
+                        <small>LAST SCAN</small>
+                        <strong>{{ last_scan_value }}</strong>
+                    </div>
+
+                    <span class="soc-posture-metric__trend">
+                        RECENT
+                    </span>
+                </article>
+
+            </div>
+
+        </aside>
+
+    </section>
+
+
+    <!-- =====================================================
+         PRIMARY METRIC GRID
+    ====================================================== -->
+
+    <section class="soc-section" aria-labelledby="overviewMetricsTitle">
+
+        <div class="soc-section-header">
+
+            <div>
+                <p class="soc-eyebrow">OPERATIONAL OVERVIEW</p>
+                <h2 id="overviewMetricsTitle">Security performance metrics</h2>
+            </div>
+
+            <div class="soc-section-header__meta">
+                <span class="soc-live-dot"></span>
+                Updated in real time
+            </div>
+
+        </div>
+
+
+        <div class="soc-metric-grid">
+
+            <article class="soc-metric-card soc-metric-card--primary">
+                <div class="soc-metric-card__top">
+                    <span class="soc-metric-card__icon">
+                        <i class="fa-solid fa-folder-tree"></i>
+                    </span>
+
+                    <span class="soc-metric-card__label">TOTAL SCANS</span>
+
+                    <button
+                        class="soc-card-menu"
+                        type="button"
+                        aria-label="Total scan metric options"
+                    >
+                        <i class="fa-solid fa-ellipsis"></i>
+                    </button>
+                </div>
+
+                <strong
+                    class="soc-metric-card__value counter"
+                    data-counter="{{ total_scans }}"
+                >
+                    {{ total_scans }}
+                </strong>
+
+                <div class="soc-metric-card__footer">
+                    <span>
+                        <i class="fa-solid fa-file-waveform"></i>
+                        Files analysed
+                    </span>
+
+                    <span class="soc-metric-card__trend soc-metric-card__trend--neutral">
+                        ALL TIME
+                    </span>
+                </div>
+
+                <div class="soc-metric-card__sparkline" aria-hidden="true">
+                    <svg viewBox="0 0 240 52" preserveAspectRatio="none">
+                        <path d="M0 43 C20 38 28 42 44 31 S74 36 92 24 S122 30 138 17 S170 23 188 12 S218 18 240 6"></path>
+                    </svg>
+                </div>
+            </article>
+
+
+            <article class="soc-metric-card soc-metric-card--safe">
+                <div class="soc-metric-card__top">
+                    <span class="soc-metric-card__icon">
+                        <i class="fa-solid fa-shield-check"></i>
+                    </span>
+
+                    <span class="soc-metric-card__label">SAFE FILES</span>
+
+                    <span class="soc-status-chip soc-status-chip--safe">
+                        CLEAN
+                    </span>
+                </div>
+
+                <strong
+                    class="soc-metric-card__value counter"
+                    data-counter="{{ safe_scans }}"
+                >
+                    {{ safe_scans }}
+                </strong>
+
+                <div class="soc-metric-card__footer">
+                    <span>
+                        <i class="fa-solid fa-circle-check"></i>
+                        No threat detected
+                    </span>
+
+                    <span class="soc-metric-card__trend soc-metric-card__trend--positive">
+                        PROTECTED
+                    </span>
+                </div>
+
+                <div class="soc-metric-card__progress">
+                    <span
+                        data-progress-value="{% if total_scans > 0 %}{{ ((safe_scans / total_scans) * 100)|round(1) }}{% else %}0{% endif %}"
+                    ></span>
+                </div>
+            </article>
+
+
+            <article class="soc-metric-card soc-metric-card--warning">
+                <div class="soc-metric-card__top">
+                    <span class="soc-metric-card__icon">
+                        <i class="fa-solid fa-virus"></i>
+                    </span>
+
+                    <span class="soc-metric-card__label">THREATS FOUND</span>
+
+                    <span class="soc-status-chip soc-status-chip--warning">
+                        REVIEW
+                    </span>
+                </div>
+
+                <strong
+                    class="soc-metric-card__value counter"
+                    data-counter="{{ malicious_scans }}"
+                >
+                    {{ malicious_scans }}
+                </strong>
+
+                <div class="soc-metric-card__footer">
+                    <span>
+                        <i class="fa-solid fa-magnifying-glass-chart"></i>
+                        Malicious detections
+                    </span>
+
+                    <span class="soc-metric-card__trend soc-metric-card__trend--warning">
+                        {{ threat_rate }}% RATE
+                    </span>
+                </div>
+
+                <div class="soc-metric-card__progress">
+                    <span data-progress-value="{{ threat_rate }}"></span>
+                </div>
+            </article>
+
+
+            <article class="soc-metric-card soc-metric-card--critical">
+                <div class="soc-metric-card__top">
+                    <span class="soc-metric-card__icon">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                    </span>
+
+                    <span class="soc-metric-card__label">CRITICAL EVENTS</span>
+
+                    <span class="soc-status-chip soc-status-chip--critical">
+                        PRIORITY
+                    </span>
+                </div>
+
+                <strong
+                    class="soc-metric-card__value counter"
+                    data-counter="{{ critical_scans }}"
+                >
+                    {{ critical_scans }}
+                </strong>
+
+                <div class="soc-metric-card__footer">
+                    <span>
+                        <i class="fa-solid fa-bolt"></i>
+                        Immediate attention
+                    </span>
+
+                    <span class="soc-metric-card__trend soc-metric-card__trend--negative">
+                        ESCALATE
+                    </span>
+                </div>
+
+                <div class="soc-metric-card__signal" aria-hidden="true">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            </article>
+
+
+            <article class="soc-metric-card soc-metric-card--score">
+                <div class="soc-metric-card__top">
+                    <span class="soc-metric-card__icon">
+                        <i class="fa-solid fa-gauge-high"></i>
+                    </span>
+
+                    <span class="soc-metric-card__label">HEALTH SCORE</span>
+
+                    <span class="soc-status-chip">
+                        AI
+                    </span>
+                </div>
+
+                <strong class="soc-metric-card__value">
+                    {{ security_score }}
+                    <small>/100</small>
+                </strong>
+
+                <div class="soc-metric-card__footer">
+                    <span>
+                        <i class="fa-solid fa-brain"></i>
+                        AI assessment
+                    </span>
+
+                    <span class="soc-metric-card__trend soc-metric-card__trend--positive">
+                        ACTIVE
+                    </span>
+                </div>
+
+                <div class="soc-metric-card__progress">
+                    <span data-progress-value="{{ security_score }}"></span>
+                </div>
+            </article>
+
+
+            <article class="soc-metric-card soc-metric-card--engine">
+                <div class="soc-metric-card__top">
+                    <span class="soc-metric-card__icon">
+                        <i class="fa-solid fa-microchip"></i>
+                    </span>
+
+                    <span class="soc-metric-card__label">AI ENGINE</span>
+
+                    <span class="soc-status-chip soc-status-chip--safe">
+                        ONLINE
+                    </span>
+                </div>
+
+                <strong class="soc-metric-card__value soc-metric-card__value--text">
+                    XGBoost
+                </strong>
+
+                <div class="soc-metric-card__footer">
+                    <span>
+                        <i class="fa-solid fa-wave-square"></i>
+                        Inference ready
+                    </span>
+
+                    <span class="soc-metric-card__trend soc-metric-card__trend--positive">
+                        {{ security_score }}% CONF.
+                    </span>
+                </div>
+
+                <div class="soc-metric-card__engine-wave" aria-hidden="true">
+                    <span></span><span></span><span></span><span></span>
+                    <span></span><span></span><span></span><span></span>
+                </div>
+            </article>
+
+        </div>
+
+    </section>
+
+
+    <!-- =====================================================
+         AI EXECUTIVE SUMMARY
+    ====================================================== -->
+
+    <section
+        class="soc-ai-summary"
+        aria-labelledby="aiSummaryTitle"
+    >
+
+        <div class="soc-ai-summary__identity">
+            <div class="soc-ai-summary__icon">
+                <i class="fa-solid fa-brain"></i>
+                <span></span>
             </div>
 
             <div>
-                <span>FILES SCANNED</span>
-                <h2>{{ stats.total }}</h2>
-                <small>AI analysed files</small>
+                <p class="soc-eyebrow">AI SECURITY ANALYSIS</p>
+                <h2 id="aiSummaryTitle">Executive threat assessment</h2>
+                <p>
+                    Automated interpretation of current scan records and
+                    operational risk indicators.
+                </p>
             </div>
+        </div>
+
+
+        <div class="soc-ai-summary__assessment">
+
+            {% if critical_scans > 0 %}
+
+                <span class="soc-status-chip soc-status-chip--critical">
+                    CRITICAL RESPONSE
+                </span>
+
+                <h3>
+                    Critical malware activity requires immediate containment.
+                </h3>
+
+                <p>
+                    Review the latest critical detections, isolate affected
+                    files and validate whether additional assets were exposed.
+                </p>
+
+            {% elif malicious_scans > 0 %}
+
+                <span class="soc-status-chip soc-status-chip--warning">
+                    INVESTIGATION ADVISED
+                </span>
+
+                <h3>
+                    Suspicious file activity has been detected.
+                </h3>
+
+                <p>
+                    Prioritise malicious scan records and verify their source,
+                    risk classification and potential operational impact.
+                </p>
+
+            {% else %}
+
+                <span class="soc-status-chip soc-status-chip--safe">
+                    STABLE ENVIRONMENT
+                </span>
+
+                <h3>
+                    No active threats are present in the current scan data.
+                </h3>
+
+                <p>
+                    Continue routine scanning and maintain current monitoring
+                    controls to preserve the secure posture.
+                </p>
+
+            {% endif %}
 
         </div>
 
-        <div class="hero-data-card">
 
-            <div class="confidence-circle">
-                <span>{{ score }}%</span>
-            </div>
+        <div class="soc-ai-summary__metrics">
+
+            <article>
+                <span>Threat Rate</span>
+                <strong>{{ threat_rate }}%</strong>
+                <small>Malicious share</small>
+            </article>
+
+            <article>
+                <span>Model Confidence</span>
+                <strong>{{ security_score }}%</strong>
+                <small>XGBoost assessment</small>
+            </article>
+
+            <article>
+                <span>Last Scan</span>
+                <strong>{{ last_scan_value }}</strong>
+                <small>Latest activity</small>
+            </article>
+
+        </div>
+
+
+        <button
+            class="soc-ai-summary__action"
+            id="openAssessmentPanel"
+            type="button"
+        >
+            View detailed assessment
+            <i class="fa-solid fa-arrow-right"></i>
+        </button>
+
+    </section>
+
+
+    <!-- =====================================================
+         ANALYTICS COMMAND GRID
+    ====================================================== -->
+
+    <section class="soc-section" aria-labelledby="analyticsTitle">
+
+        <div class="soc-section-header">
 
             <div>
-                <span>AI CONFIDENCE</span>
-                <h2>{{ score }}%</h2>
-                <small class="safe-text">High Confidence</small>
+                <p class="soc-eyebrow">VISUAL ANALYTICS</p>
+                <h2 id="analyticsTitle">Threat intelligence workspace</h2>
+            </div>
+
+            <div class="soc-segmented-control" role="group" aria-label="Analytics time range">
+                <button type="button" data-range="24h">24H</button>
+                <button class="is-active" type="button" data-range="7d">7D</button>
+                <button type="button" data-range="30d">30D</button>
+                <button type="button" data-range="all">ALL</button>
             </div>
 
         </div>
 
-        <div class="hero-data-card">
 
-            <div class="data-card-icon purple-icon">
-                <i class="fa-solid fa-shield"></i>
-            </div>
+        <div class="soc-analytics-grid">
 
-            <div>
-                <span>ACTIVE SHIELDS</span>
-                <h2>5</h2>
-                <small>Systems Protected</small>
-            </div>
+            <!-- Live threat landscape -->
+
+            <article class="soc-panel soc-panel--landscape">
+
+                <header class="soc-panel__header">
+                    <div>
+                        <span class="soc-panel__icon">
+                            <i class="fa-solid fa-earth-americas"></i>
+                        </span>
+
+                        <div>
+                            <h3>Global Threat Landscape</h3>
+                            <p>Live detection and traffic simulation</p>
+                        </div>
+                    </div>
+
+                    <span class="soc-live-label">
+                        <span class="soc-live-dot"></span>
+                        LIVE
+                    </span>
+                </header>
+
+                <div class="soc-threat-map" id="dashboardThreatMap">
+
+                    <img
+                        src="{{ url_for('static', filename='images/world-map.png') }}"
+                        alt="Global threat activity map"
+                    >
+
+                    <canvas
+                        id="threatMapCanvas"
+                        aria-hidden="true"
+                    ></canvas>
+
+                    <button
+                        class="soc-map-node soc-map-node--one"
+                        type="button"
+                        aria-label="Threat activity node one"
+                        data-node-name="North America Relay"
+                        data-node-risk="Medium"
+                    >
+                        <span></span>
+                    </button>
+
+                    <button
+                        class="soc-map-node soc-map-node--two"
+                        type="button"
+                        aria-label="Threat activity node two"
+                        data-node-name="European Gateway"
+                        data-node-risk="Low"
+                    >
+                        <span></span>
+                    </button>
+
+                    <button
+                        class="soc-map-node soc-map-node--three"
+                        type="button"
+                        aria-label="Threat activity node three"
+                        data-node-name="India Operations Node"
+                        data-node-risk="Elevated"
+                    >
+                        <span></span>
+                    </button>
+
+                    <button
+                        class="soc-map-node soc-map-node--four"
+                        type="button"
+                        aria-label="Threat activity node four"
+                        data-node-name="Asia-Pacific Relay"
+                        data-node-risk="Critical"
+                    >
+                        <span></span>
+                    </button>
+
+                    <div
+                        class="soc-map-tooltip"
+                        id="threatMapTooltip"
+                        role="status"
+                        aria-live="polite"
+                    ></div>
+
+                </div>
+
+                <footer class="soc-threat-map__metrics">
+
+                    <div>
+                        <span>Active Threats</span>
+                        <strong>{{ malicious_scans }}</strong>
+                    </div>
+
+                    <div>
+                        <span>Critical Events</span>
+                        <strong>{{ critical_scans }}</strong>
+                    </div>
+
+                    <div>
+                        <span>Security State</span>
+
+                        {% if critical_scans > 0 %}
+                            <strong class="soc-text-critical">At Risk</strong>
+                        {% elif malicious_scans > 0 %}
+                            <strong class="soc-text-warning">Elevated</strong>
+                        {% else %}
+                            <strong class="soc-text-safe">Protected</strong>
+                        {% endif %}
+                    </div>
+
+                    <div>
+                        <span>Telemetry</span>
+                        <strong class="soc-text-safe">Connected</strong>
+                    </div>
+
+                </footer>
+
+            </article>
+
+
+            <!-- Daily activity server chart -->
+
+            <article class="soc-panel soc-panel--chart">
+
+                <header class="soc-panel__header">
+                    <div>
+                        <span class="soc-panel__icon">
+                            <i class="fa-solid fa-chart-line"></i>
+                        </span>
+
+                        <div>
+                            <h3>Daily Scan Activity</h3>
+                            <p>Operational scan volume over time</p>
+                        </div>
+                    </div>
+
+                    <button
+                        class="soc-panel-action"
+                        type="button"
+                        aria-label="Expand daily scan activity chart"
+                        data-expand-panel
+                    >
+                        <i class="fa-solid fa-expand"></i>
+                    </button>
+                </header>
+
+                <div class="soc-chart-container" data-chart-name="daily-activity">
+                    <div class="soc-chart-skeleton" aria-hidden="true">
+                        <span></span><span></span><span></span><span></span>
+                    </div>
+
+                    <div class="soc-server-chart">
+                        {{ line|safe }}
+                    </div>
+                </div>
+
+            </article>
+
+
+            <!-- Threat distribution -->
+
+            <article class="soc-panel soc-panel--chart soc-panel--compact">
+
+                <header class="soc-panel__header">
+                    <div>
+                        <span class="soc-panel__icon">
+                            <i class="fa-solid fa-chart-pie"></i>
+                        </span>
+
+                        <div>
+                            <h3>Threat Distribution</h3>
+                            <p>Safe versus malicious classification</p>
+                        </div>
+                    </div>
+
+                    <button
+                        class="soc-panel-action"
+                        type="button"
+                        aria-label="Expand threat distribution chart"
+                        data-expand-panel
+                    >
+                        <i class="fa-solid fa-expand"></i>
+                    </button>
+                </header>
+
+                <div class="soc-chart-container" data-chart-name="threat-distribution">
+                    <div class="soc-server-chart">
+                        {{ pie|safe }}
+                    </div>
+                </div>
+
+            </article>
+
+
+            <!-- Risk distribution -->
+
+            <article class="soc-panel soc-panel--chart soc-panel--compact">
+
+                <header class="soc-panel__header">
+                    <div>
+                        <span class="soc-panel__icon">
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                        </span>
+
+                        <div>
+                            <h3>Risk Distribution</h3>
+                            <p>Threat records by severity level</p>
+                        </div>
+                    </div>
+
+                    <button
+                        class="soc-panel-action"
+                        type="button"
+                        aria-label="Expand risk distribution chart"
+                        data-expand-panel
+                    >
+                        <i class="fa-solid fa-expand"></i>
+                    </button>
+                </header>
+
+                <div class="soc-chart-container" data-chart-name="risk-distribution">
+                    <div class="soc-server-chart">
+                        {{ bar|safe }}
+                    </div>
+                </div>
+
+            </article>
+
+
+            <!-- Monthly trend -->
+
+            <article class="soc-panel soc-panel--chart">
+
+                <header class="soc-panel__header">
+                    <div>
+                        <span class="soc-panel__icon">
+                            <i class="fa-solid fa-calendar-days"></i>
+                        </span>
+
+                        <div>
+                            <h3>Monthly Scan Trend</h3>
+                            <p>Long-term security activity pattern</p>
+                        </div>
+                    </div>
+
+                    <button
+                        class="soc-panel-action"
+                        type="button"
+                        aria-label="Expand monthly scan trend chart"
+                        data-expand-panel
+                    >
+                        <i class="fa-solid fa-expand"></i>
+                    </button>
+                </header>
+
+                <div class="soc-chart-container" data-chart-name="monthly-trend">
+                    <div class="soc-server-chart">
+                        {{ monthly_chart|safe }}
+                    </div>
+                </div>
+
+            </article>
+
+
+            <!-- Extension analytics -->
+
+            <article class="soc-panel soc-panel--chart">
+
+                <header class="soc-panel__header">
+                    <div>
+                        <span class="soc-panel__icon">
+                            <i class="fa-solid fa-file-code"></i>
+                        </span>
+
+                        <div>
+                            <h3>Top File Extensions</h3>
+                            <p>Most frequently analysed file types</p>
+                        </div>
+                    </div>
+
+                    <button
+                        class="soc-panel-action"
+                        type="button"
+                        aria-label="Expand file extension chart"
+                        data-expand-panel
+                    >
+                        <i class="fa-solid fa-expand"></i>
+                    </button>
+                </header>
+
+                <div class="soc-chart-container" data-chart-name="file-extensions">
+                    <div class="soc-server-chart">
+                        {{ extension_chart|safe }}
+                    </div>
+                </div>
+
+            </article>
 
         </div>
 
-    </div>
+    </section>
 
-    <!-- ENGINE STATUS -->
 
-    <div class="engine-status-card">
+    <!-- =====================================================
+         INVESTIGATION WORKSPACE
+    ====================================================== -->
 
-        <div class="engine-icon">
-            <i class="fa-solid fa-microchip"></i>
+    <section class="soc-investigation-grid">
+
+        <!-- Recent scan records -->
+
+        <article
+            class="soc-panel soc-panel--table"
+            aria-labelledby="recentScansTitle"
+        >
+
+            <header class="soc-panel__header">
+
+                <div>
+                    <span class="soc-panel__icon">
+                        <i class="fa-solid fa-clock-rotate-left"></i>
+                    </span>
+
+                    <div>
+                        <h3 id="recentScansTitle">Recent Scan Activity</h3>
+                        <p>Latest AI classification records</p>
+                    </div>
+                </div>
+
+                <a
+                    class="soc-panel-link"
+                    href="{{ url_for('history') }}"
+                >
+                    View complete history
+                    <i class="fa-solid fa-arrow-right"></i>
+                </a>
+
+            </header>
+
+
+            <div class="soc-table-toolbar">
+
+                <label class="soc-table-search">
+                    <span class="soc-sr-only">Search recent scan records</span>
+                    <i class="fa-solid fa-magnifying-glass"></i>
+
+                    <input
+                        id="scanTableSearch"
+                        type="search"
+                        placeholder="Search filename, risk or prediction"
+                        autocomplete="off"
+                    >
+                </label>
+
+                <div class="soc-table-filters" role="group" aria-label="Filter scan records">
+                    <button class="is-active" type="button" data-scan-filter="all">
+                        All
+                    </button>
+
+                    <button type="button" data-scan-filter="safe">
+                        Safe
+                    </button>
+
+                    <button type="button" data-scan-filter="threat">
+                        Threats
+                    </button>
+                </div>
+
+            </div>
+
+
+            <div class="soc-table-scroll">
+
+                <table class="soc-scan-table">
+
+                    <thead>
+                        <tr>
+                            <th scope="col">File Intelligence</th>
+                            <th scope="col">Prediction</th>
+                            <th scope="col">Risk Level</th>
+                            <th scope="col">Scan Time</th>
+                            <th scope="col">
+                                <span class="soc-sr-only">Actions</span>
+                            </th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="recentScanTableBody">
+
+                        {% if recent %}
+
+                            {% for scan in recent %}
+
+                                <tr
+                                    data-scan-row
+                                    data-prediction="{{ scan.prediction|lower|e }}"
+                                    data-search-text="{{ scan.filename|lower|e }} {{ scan.prediction|lower|e }} {{ scan.risk|lower|e }}"
+                                >
+
+                                    <td>
+                                        <div class="soc-file-cell">
+                                            <span class="soc-file-cell__icon">
+                                                <i class="fa-solid fa-file-shield"></i>
+                                            </span>
+
+                                            <div>
+                                                <strong>{{ scan.filename }}</strong>
+                                                <small>AI feature analysis complete</small>
+                                            </div>
+                                        </div>
+                                    </td>
+
+                                    <td>
+
+                                        {% if scan.prediction == "Safe" %}
+
+                                            <span class="soc-status-chip soc-status-chip--safe">
+                                                <i class="fa-solid fa-circle-check"></i>
+                                                {{ scan.prediction }}
+                                            </span>
+
+                                        {% else %}
+
+                                            <span class="soc-status-chip soc-status-chip--critical">
+                                                <i class="fa-solid fa-shield-virus"></i>
+                                                {{ scan.prediction }}
+                                            </span>
+
+                                        {% endif %}
+
+                                    </td>
+
+                                    <td>
+                                        <span
+                                            class="soc-risk-label"
+                                            data-risk-value="{{ scan.risk|e }}"
+                                        >
+                                            <span></span>
+                                            {{ scan.risk }}
+                                        </span>
+                                    </td>
+
+                                    <td>
+                                        <time>{{ scan.scan_time }}</time>
+                                    </td>
+
+                                    <td>
+                                        <button
+                                            class="soc-row-action"
+                                            type="button"
+                                            aria-label="Open details for {{ scan.filename|e }}"
+                                            data-open-scan-details
+                                            data-filename="{{ scan.filename|e }}"
+                                            data-prediction="{{ scan.prediction|e }}"
+                                            data-risk="{{ scan.risk|e }}"
+                                            data-scan-time="{{ scan.scan_time|e }}"
+                                        >
+                                            <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                        </button>
+                                    </td>
+
+                                </tr>
+
+                            {% endfor %}
+
+                        {% else %}
+
+                            <tr class="soc-table-empty-row">
+                                <td colspan="5">
+
+                                    <div class="soc-empty-state">
+                                        <span>
+                                            <i class="fa-solid fa-file-circle-question"></i>
+                                        </span>
+
+                                        <h4>No scan records available</h4>
+
+                                        <p>
+                                            Upload a file to begin AI-powered threat analysis.
+                                        </p>
+
+                                        <a
+                                            class="soc-button soc-button--secondary"
+                                            href="{{ url_for('upload') }}"
+                                        >
+                                            Start first scan
+                                        </a>
+                                    </div>
+
+                                </td>
+                            </tr>
+
+                        {% endif %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+
+            <footer class="soc-table-footer">
+                <span id="visibleScanCount">
+                    Showing recent security records
+                </span>
+
+                <span>
+                    Last update: {{ last_scan_value }}
+                </span>
+            </footer>
+
+        </article>
+
+
+        <!-- System integrity -->
+
+        <aside class="soc-panel soc-system-integrity">
+
+            <header class="soc-panel__header">
+                <div>
+                    <span class="soc-panel__icon">
+                        <i class="fa-solid fa-server"></i>
+                    </span>
+
+                    <div>
+                        <h3>System Integrity</h3>
+                        <p>Security service availability</p>
+                    </div>
+                </div>
+
+                <span class="soc-status-chip soc-status-chip--safe">
+                    HEALTHY
+                </span>
+            </header>
+
+
+            <div class="soc-integrity-score">
+
+                <div
+                    class="soc-integrity-score__gauge"
+                    data-score="{{ security_score }}"
+                >
+                    <div>
+                        <strong>{{ security_score }}%</strong>
+                        <span>Overall health</span>
+                    </div>
+                </div>
+
+                <div>
+                    <h4>Operational readiness</h4>
+                    <p>
+                        Core analysis and storage services are connected.
+                    </p>
+                </div>
+
+            </div>
+
+
+            <div class="soc-service-list">
+
+                <article class="soc-service-item">
+                    <span class="soc-service-item__icon">
+                        <i class="fa-solid fa-brain"></i>
+                    </span>
+
+                    <div>
+                        <strong>AI Inference Engine</strong>
+                        <small>XGBoost threat classifier</small>
+                    </div>
+
+                    <span class="soc-service-state soc-service-state--online">
+                        <i class="fa-solid fa-circle"></i>
+                        Online
+                    </span>
+                </article>
+
+                <article class="soc-service-item">
+                    <span class="soc-service-item__icon">
+                        <i class="fa-solid fa-database"></i>
+                    </span>
+
+                    <div>
+                        <strong>Threat Database</strong>
+                        <small>Scan history and results</small>
+                    </div>
+
+                    <span class="soc-service-state soc-service-state--online">
+                        <i class="fa-solid fa-circle"></i>
+                        Connected
+                    </span>
+                </article>
+
+                <article class="soc-service-item">
+                    <span class="soc-service-item__icon">
+                        <i class="fa-solid fa-wave-square"></i>
+                    </span>
+
+                    <div>
+                        <strong>Feature Extractor</strong>
+                        <small>Static file intelligence</small>
+                    </div>
+
+                    <span class="soc-service-state soc-service-state--online">
+                        <i class="fa-solid fa-circle"></i>
+                        Running
+                    </span>
+                </article>
+
+                <article class="soc-service-item">
+                    <span class="soc-service-item__icon">
+                        <i class="fa-solid fa-cloud"></i>
+                    </span>
+
+                    <div>
+                        <strong>Cloud Telemetry</strong>
+                        <small>Security event pipeline</small>
+                    </div>
+
+                    <span class="soc-service-state soc-service-state--online">
+                        <i class="fa-solid fa-circle"></i>
+                        Available
+                    </span>
+                </article>
+
+            </div>
+
+
+            <div class="soc-resource-monitor">
+
+                <div class="soc-resource-monitor__header">
+                    <strong>RESOURCE UTILIZATION</strong>
+                    <span id="resourceUpdatedTime">Live</span>
+                </div>
+
+                <div class="soc-resource-row">
+                    <div>
+                        <span>AI Engine</span>
+                        <strong id="aiEngineLoadValue">38%</strong>
+                    </div>
+
+                    <div class="soc-resource-bar">
+                        <span id="aiEngineLoadBar" data-resource-value="38"></span>
+                    </div>
+                </div>
+
+                <div class="soc-resource-row">
+                    <div>
+                        <span>Memory</span>
+                        <strong id="memoryLoadValue">52%</strong>
+                    </div>
+
+                    <div class="soc-resource-bar">
+                        <span id="memoryLoadBar" data-resource-value="52"></span>
+                    </div>
+                </div>
+
+                <div class="soc-resource-row">
+                    <div>
+                        <span>Database</span>
+                        <strong id="databaseLoadValue">24%</strong>
+                    </div>
+
+                    <div class="soc-resource-bar">
+                        <span id="databaseLoadBar" data-resource-value="24"></span>
+                    </div>
+                </div>
+
+            </div>
+
+        </aside>
+
+    </section>
+
+
+    <!-- =====================================================
+         INCIDENT AND ACTION CENTER
+    ====================================================== -->
+
+    <section class="soc-bottom-grid">
+
+        <article class="soc-panel soc-incident-feed">
+
+            <header class="soc-panel__header">
+                <div>
+                    <span class="soc-panel__icon">
+                        <i class="fa-solid fa-shield-virus"></i>
+                    </span>
+
+                    <div>
+                        <h3>Incident Intelligence Feed</h3>
+                        <p>Priority review queue generated from recent scans</p>
+                    </div>
+                </div>
+
+                <span class="soc-status-chip">
+                    {{ malicious_scans }} EVENTS
+                </span>
+            </header>
+
+
+            <div class="soc-incident-feed__list">
+
+                {% if recent %}
+
+                    {% for scan in recent %}
+
+                        <article
+                            class="soc-incident"
+                            data-incident-severity="{{ scan.risk|lower|e }}"
+                        >
+                            <span class="soc-incident__timeline"></span>
+
+                            <div class="soc-incident__icon">
+                                {% if scan.prediction == "Safe" %}
+                                    <i class="fa-solid fa-shield-check"></i>
+                                {% else %}
+                                    <i class="fa-solid fa-virus"></i>
+                                {% endif %}
+                            </div>
+
+                            <div class="soc-incident__content">
+                                <div>
+                                    <strong>{{ scan.filename }}</strong>
+                                    <time>{{ scan.scan_time }}</time>
+                                </div>
+
+                                <p>
+                                    Classification:
+                                    <strong>{{ scan.prediction }}</strong>.
+                                    Recorded risk:
+                                    <strong>{{ scan.risk }}</strong>.
+                                </p>
+                            </div>
+
+                            <button
+                                class="soc-incident__action"
+                                type="button"
+                                data-open-scan-details
+                                data-filename="{{ scan.filename|e }}"
+                                data-prediction="{{ scan.prediction|e }}"
+                                data-risk="{{ scan.risk|e }}"
+                                data-scan-time="{{ scan.scan_time|e }}"
+                            >
+                                Investigate
+                            </button>
+                        </article>
+
+                    {% endfor %}
+
+                {% else %}
+
+                    <div class="soc-empty-state soc-empty-state--compact">
+                        <span>
+                            <i class="fa-solid fa-shield"></i>
+                        </span>
+
+                        <h4>Incident queue is clear</h4>
+
+                        <p>
+                            No recent records are available for investigation.
+                        </p>
+                    </div>
+
+                {% endif %}
+
+            </div>
+
+        </article>
+
+
+        <aside class="soc-panel soc-quick-actions">
+
+            <header class="soc-panel__header">
+                <div>
+                    <span class="soc-panel__icon">
+                        <i class="fa-solid fa-bolt"></i>
+                    </span>
+
+                    <div>
+                        <h3>Security Actions</h3>
+                        <p>Frequently used operational controls</p>
+                    </div>
+                </div>
+            </header>
+
+
+            <div class="soc-quick-actions__grid">
+
+                <a
+                    class="soc-quick-action"
+                    href="{{ url_for('upload') }}"
+                >
+                    <span>
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                    </span>
+
+                    <div>
+                        <strong>Scan New File</strong>
+                        <small>Open upload workspace</small>
+                    </div>
+
+                    <i class="fa-solid fa-arrow-right"></i>
+                </a>
+
+                <a
+                    class="soc-quick-action"
+                    href="{{ url_for('history') }}"
+                >
+                    <span>
+                        <i class="fa-solid fa-clock-rotate-left"></i>
+                    </span>
+
+                    <div>
+                        <strong>Review History</strong>
+                        <small>Investigate scan records</small>
+                    </div>
+
+                    <i class="fa-solid fa-arrow-right"></i>
+                </a>
+
+                <button
+                    class="soc-quick-action"
+                    id="exportDashboardReport"
+                    type="button"
+                >
+                    <span>
+                        <i class="fa-solid fa-file-export"></i>
+                    </span>
+
+                    <div>
+                        <strong>Export Snapshot</strong>
+                        <small>Prepare dashboard summary</small>
+                    </div>
+
+                    <i class="fa-solid fa-download"></i>
+                </button>
+
+                <button
+                    class="soc-quick-action"
+                    id="refreshDashboardData"
+                    type="button"
+                >
+                    <span>
+                        <i class="fa-solid fa-rotate"></i>
+                    </span>
+
+                    <div>
+                        <strong>Refresh Intelligence</strong>
+                        <small>Reload dashboard data</small>
+                    </div>
+
+                    <i class="fa-solid fa-arrows-rotate"></i>
+                </button>
+
+            </div>
+
+
+            <div class="soc-security-tip">
+                <span>
+                    <i class="fa-solid fa-lightbulb"></i>
+                </span>
+
+                <div>
+                    <strong>AI Security Recommendation</strong>
+
+                    {% if critical_scans > 0 %}
+                        <p>
+                            Review critical detections before initiating
+                            additional scans.
+                        </p>
+                    {% elif malicious_scans > 0 %}
+                        <p>
+                            Investigate suspicious files and validate their source.
+                        </p>
+                    {% else %}
+                        <p>
+                            Maintain routine scanning to strengthen the dataset.
+                        </p>
+                    {% endif %}
+                </div>
+            </div>
+
+        </aside>
+
+    </section>
+
+
+    <!-- =====================================================
+         DASHBOARD FOOTER
+    ====================================================== -->
+
+    <footer class="soc-dashboard-footer">
+
+        <div>
+            <span class="soc-live-dot"></span>
+            <strong>AI Threat Detection Platform</strong>
+            <span>Security Operations Dashboard</span>
         </div>
 
         <div>
-            <span>AI ENGINE STATUS</span>
-            <strong>RUNNING</strong>
-            <small>XGBoost Model Active</small>
+            <span>Model: XGBoost</span>
+            <span class="soc-footer-divider"></span>
+            <span>Session: <strong id="dashboardSessionId">Generating</strong></span>
+            <span class="soc-footer-divider"></span>
+            <span id="dashboardCopyrightYear">2026</span>
+        </div>
+
+    </footer>
+
+
+    <!-- =====================================================
+         COMMAND PALETTE
+    ====================================================== -->
+
+    <div
+        class="soc-modal"
+        id="dashboardCommandPalette"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="commandPaletteTitle"
+        aria-hidden="true"
+    >
+
+        <div class="soc-modal__backdrop" data-close-command-palette></div>
+
+        <div class="soc-command-palette">
+
+            <header class="soc-command-palette__header">
+                <i class="fa-solid fa-magnifying-glass"></i>
+
+                <label>
+                    <span class="soc-sr-only" id="commandPaletteTitle">
+                        Search dashboard commands
+                    </span>
+
+                    <input
+                        id="commandPaletteInput"
+                        type="search"
+                        placeholder="Search commands, sections and actions"
+                        autocomplete="off"
+                    >
+                </label>
+
+                <button
+                    id="closeCommandPalette"
+                    type="button"
+                    aria-label="Close command palette"
+                >
+                    ESC
+                </button>
+            </header>
+
+
+            <div class="soc-command-palette__body">
+
+                <p class="soc-command-palette__group-title">
+                    QUICK NAVIGATION
+                </p>
+
+                <a
+                    class="soc-command-item"
+                    href="{{ url_for('upload') }}"
+                    data-command-search="upload scan file malware analysis"
+                >
+                    <span>
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                    </span>
+
+                    <div>
+                        <strong>Upload and scan a file</strong>
+                        <small>Open AI malware analysis</small>
+                    </div>
+
+                    <kbd>U</kbd>
+                </a>
+
+                <a
+                    class="soc-command-item"
+                    href="{{ url_for('history') }}"
+                    data-command-search="history logs previous scans records"
+                >
+                    <span>
+                        <i class="fa-solid fa-clock-rotate-left"></i>
+                    </span>
+
+                    <div>
+                        <strong>Open scan history</strong>
+                        <small>Review previous detections</small>
+                    </div>
+
+                    <kbd>H</kbd>
+                </a>
+
+                <button
+                    class="soc-command-item"
+                    type="button"
+                    data-command-scroll="analyticsTitle"
+                    data-command-search="analytics charts trends dashboard"
+                >
+                    <span>
+                        <i class="fa-solid fa-chart-line"></i>
+                    </span>
+
+                    <div>
+                        <strong>Go to threat analytics</strong>
+                        <small>View charts and risk trends</small>
+                    </div>
+
+                    <kbd>A</kbd>
+                </button>
+
+                <button
+                    class="soc-command-item"
+                    type="button"
+                    data-command-scroll="recentScansTitle"
+                    data-command-search="recent scans investigation table"
+                >
+                    <span>
+                        <i class="fa-solid fa-list-check"></i>
+                    </span>
+
+                    <div>
+                        <strong>Open recent scan records</strong>
+                        <small>Search latest file classifications</small>
+                    </div>
+
+                    <kbd>R</kbd>
+                </button>
+
+                <button
+                    class="soc-command-item"
+                    id="commandRefreshDashboard"
+                    type="button"
+                    data-command-search="refresh reload update intelligence"
+                >
+                    <span>
+                        <i class="fa-solid fa-rotate"></i>
+                    </span>
+
+                    <div>
+                        <strong>Refresh dashboard intelligence</strong>
+                        <small>Reload the current page data</small>
+                    </div>
+
+                    <kbd>⌘R</kbd>
+                </button>
+
+            </div>
+
+
+            <footer class="soc-command-palette__footer">
+                <span>
+                    <kbd>↑</kbd>
+                    <kbd>↓</kbd>
+                    Navigate
+                </span>
+
+                <span>
+                    <kbd>ENTER</kbd>
+                    Select
+                </span>
+
+                <span>
+                    <kbd>ESC</kbd>
+                    Close
+                </span>
+            </footer>
+
         </div>
 
     </div>
 
-</div>
 
-<!-- ================= WELCOME ================= -->
-
-<div class="welcome-panel">
-
-<div class="welcome-left">
-
-<div class="profile-avatar">
-
-<img
-    src="https://ui-avatars.com/api/?name={{ user }}&background=0D8ABC&color=ffffff&bold=true&size=128"
-    alt="{{ user }}"
->
-
-</div>
-
-<div class="welcome-info">
-
-<h2>
-
-Welcome Back,
-
-<span>{{ user }}</span>
-
-</h2>
-
-<p>
-
-Role :
-<strong>{{ current_user.role }}</strong>
-
-</p>
-
-<p class="welcome-desc">
-
-Your AI security platform is active and continuously monitoring uploaded files for malicious threats.
-
-</p>
-
-</div>
-
-</div>
-
-<div class="welcome-right">
-
-<div class="status-box">
-
-<div class="status-indicator"></div>
-
-<div>
-
-<h5>System Status</h5>
-
-<h3>ONLINE</h3>
-
-</div>
-
-</div>
-
-<div class="status-box">
-
-<i class="fa-solid fa-shield-halved"></i>
-
-<div>
-
-<h5>Protection</h5>
-
-<h3>ACTIVE</h3>
-
-</div>
-
-</div>
-
-<div class="status-box">
-
-<i class="fa-solid fa-brain"></i>
-
-<div>
-
-<h5>AI Engine</h5>
-
-<h3>XGBoost</h3>
-
-</div>
-
-</div>
-
-</div>
-
-</div>
-
-<!-- ================= STATISTICS ================= -->
-
-<div class="stats-grid">
-
-<div class="stat-card total">
-
-<div class="card-icon">
-
-<i class="fa-solid fa-folder-tree"></i>
-
-</div>
-
-<div>
-
-<h6>Total Scans</h6>
-
-<h2 class="counter">
-
-{{ stats.total }}
-
-</h2>
-
-<p>
-
-Files Analysed
-
-</p>
-
-</div>
-
-</div>
-
-<div class="stat-card safe">
-
-<div class="card-icon">
-
-<i class="fa-solid fa-shield-check"></i>
-
-</div>
-
-<div>
-
-<h6>Safe Files</h6>
-
-<h2 class="counter">
-
-{{ stats.safe }}
-
-</h2>
-
-<p>
-
-No Threats
-
-</p>
-
-</div>
-
-</div>
-
-<div class="stat-card threat">
-
-<div class="card-icon">
-
-<i class="fa-solid fa-virus"></i>
-
-</div>
-
-<div>
-
-<h6>Threats Found</h6>
-
-<h2 class="counter">
-
-{{ stats.malicious }}
-
-</h2>
-
-<p>
-
-Detected Malware
-
-</p>
-
-</div>
-
-</div>
-
-<div class="stat-card critical">
-
-<div class="card-icon">
-
-<i class="fa-solid fa-triangle-exclamation"></i>
-
-</div>
-
-<div>
-
-<h6>Critical Threats</h6>
-
-<h2 class="counter">
-
-{{ stats.critical }}
-
-</h2>
-
-<p>
-
-Immediate Attention
-
-</p>
-
-</div>
-
-</div>
-
-</div>
-
-<!-- ================= AI SUMMARY ================= -->
-
-<div class="ai-summary-card">
-
-<div class="summary-header">
-
-<div>
-
-<h2>
-
-AI SECURITY ANALYSIS
-
-</h2>
-
-<p>
-
-Real-time intelligent assessment
-
-</p>
-
-</div>
-
-<div class="ai-score">
-
-{{ score }}
-
-<span>%</span>
-
-</div>
-
-</div>
-
-<div class="summary-grid">
-
-<div class="summary-item">
-
-<h5>Total Files</h5>
-
-<h2>{{ stats.total }}</h2>
-
-</div>
-
-<div class="summary-item">
-
-<h5>Threat Rate</h5>
-
-<h2>{{ rate }}%</h2>
-
-</div>
-
-<div class="summary-item">
-
-<h5>Health Score</h5>
-
-<h2>{{ score }}/100</h2>
-
-</div>
-
-<div class="summary-item">
-
-<h5>Last Scan</h5>
-
-<h2>{{ stats.last_scan }}</h2>
-
-</div>
-
-</div>
-
-{% if stats.critical > 0 %}
-
-<div class="alert critical-alert">
-
-🚨 Critical malware detected. Immediate action required.
-
-</div>
-
-{% elif stats.malicious > 0 %}
-
-<div class="alert warning-alert">
-
-⚠ Suspicious files detected. Review recommended.
-
-</div>
-
-{% else %}
-
-<div class="alert success-alert">
-
-✅ System secure. No active threats detected.
-
-</div>
-
-{% endif %}
-
-</div>
-
-    <!-- ================= Charts ================= -->
-
-    <div class="chart-grid">
-
-  <!-- ================= LEFT COLUMN ================= -->
-
-<div class="left-column">
-
-    <!-- Live Threat Map -->
-
-    <div class="chart-card world-card">
-
-        <div class="card-header">
-
-            <h3>
-                <i class="fa-solid fa-earth-americas"></i>
-                Global Threat Monitor
-            </h3>
-
-            <span class="live-badge">
-                ● LIVE
-            </span>
-
-        </div>
-
-        <div class="world-container">
-
-           <img src="{{ url_for('static',
-           filename='images/world-map.png') }}">
-             
-
-            <div class="radar-circle"></div>
-            <div class="radar-circle delay1"></div>
-            <div class="radar-circle delay2"></div>
-
-            <div class="location us"></div>
-            <div class="location uk"></div>
-            <div class="location india"></div>
-            
-
-        </div>
-
-        <div class="world-footer">
+    <!-- =====================================================
+         SECURITY NOTIFICATION CENTER
+    ====================================================== -->
+
+    <aside
+        class="soc-drawer soc-notification-center"
+        id="securityNotificationCenter"
+        aria-labelledby="notificationCenterTitle"
+        aria-hidden="true"
+    >
+
+        <header class="soc-drawer__header">
 
             <div>
+                <p class="soc-eyebrow">SECURITY EVENTS</p>
+                <h2 id="notificationCenterTitle">Notification Center</h2>
+            </div>
 
-                <small>Active Threats</small>
+            <button
+                id="closeNotificationCenter"
+                type="button"
+                aria-label="Close notification center"
+            >
+                <i class="fa-solid fa-xmark"></i>
+            </button>
 
-                <h3>{{ stats.malicious }}</h3>
+        </header>
 
+
+        <div class="soc-drawer__summary">
+
+            <div>
+                <span>Critical</span>
+                <strong>{{ critical_scans }}</strong>
             </div>
 
             <div>
-
-                <small>Countries</small>
-
-                <h3>127</h3>
-
+                <span>Threats</span>
+                <strong>{{ malicious_scans }}</strong>
             </div>
 
             <div>
-
-                <small>Status</small>
-
-                <h3 class="green">Protected</h3>
-
+                <span>Safe</span>
+                <strong>{{ safe_scans }}</strong>
             </div>
 
         </div>
 
-    </div>
 
-    <!-- Daily Scan -->
+        <div class="soc-notification-list">
 
-    <div class="chart-card">
+            {% if critical_scans > 0 %}
 
-        <div class="card-header">
+                <article class="soc-notification soc-notification--critical">
+                    <span>
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                    </span>
 
-            <h3>
+                    <div>
+                        <strong>Critical detection requires review</strong>
+                        <p>
+                            {{ critical_scans }} critical scan record(s) are
+                            currently present.
+                        </p>
+                        <small>Priority event</small>
+                    </div>
+                </article>
 
-                <i class="fa-solid fa-chart-line"></i>
+            {% endif %}
 
-                Daily Scan Activity
 
-            </h3>
+            {% if malicious_scans > 0 %}
 
-        </div>
+                <article class="soc-notification soc-notification--warning">
+                    <span>
+                        <i class="fa-solid fa-shield-virus"></i>
+                    </span>
 
-        <div class="plot">
+                    <div>
+                        <strong>Threat intelligence updated</strong>
+                        <p>
+                            {{ malicious_scans }} malicious detection record(s)
+                            are available for investigation.
+                        </p>
+                        <small>Security analysis</small>
+                    </div>
+                </article>
 
-            {{ line|safe }}
+            {% endif %}
 
-        </div>
 
-    </div>
+            <article class="soc-notification soc-notification--success">
+                <span>
+                    <i class="fa-solid fa-brain"></i>
+                </span>
 
-    <!-- Monthly Trend -->
+                <div>
+                    <strong>AI engine is operational</strong>
+                    <p>
+                        XGBoost classification services are ready for new scans.
+                    </p>
+                    <small>System status</small>
+                </div>
+            </article>
 
-    <div class="chart-card">
 
-        <div class="card-header">
+            <article class="soc-notification">
+                <span>
+                    <i class="fa-solid fa-database"></i>
+                </span>
 
-            <h3>
-
-                <i class="fa-solid fa-calendar-days"></i>
-
-                Monthly Scan Trend
-
-            </h3>
-
-        </div>
-
-        <div class="plot">
-
-            {{ monthly_chart|safe }}
-
-        </div>
-
-    </div>
-
-</div>
-
-<!-- ================= RIGHT COLUMN ================= -->
-
-<div class="right-column">
-
-    <!-- Threat Distribution -->
-
-    <div class="chart-card">
-
-        <div class="card-header">
-
-            <h3>
-
-                <i class="fa-solid fa-chart-pie"></i>
-
-                Threat Distribution
-
-            </h3>
-
-        </div>
-
-        {{ pie|safe }}
-
-    </div>
-
-    <!-- Risk -->
-
-    <div class="chart-card">
-
-        <div class="card-header">
-
-            <h3>
-
-                <i class="fa-solid fa-triangle-exclamation"></i>
-
-                Risk Distribution
-
-            </h3>
+                <div>
+                    <strong>Threat database connected</strong>
+                    <p>
+                        Scan history and analytics data are currently available.
+                    </p>
+                    <small>Infrastructure</small>
+                </div>
+            </article>
 
         </div>
 
-        {{ bar|safe }}
 
-    </div>
+        <footer class="soc-drawer__footer">
+            <button id="markNotificationsRead" type="button">
+                <i class="fa-solid fa-check-double"></i>
+                Mark all as reviewed
+            </button>
+        </footer>
 
-    <!-- Extensions -->
+    </aside>
 
-    <div class="chart-card">
+    <div
+        class="soc-drawer-backdrop"
+        id="dashboardDrawerBackdrop"
+        aria-hidden="true"
+    ></div>
 
-        <div class="card-header">
 
-            <h3>
+    <!-- =====================================================
+         SCAN DETAILS DRAWER
+    ====================================================== -->
 
-                <i class="fa-solid fa-file-code"></i>
+    <aside
+        class="soc-drawer soc-scan-details"
+        id="scanDetailsDrawer"
+        aria-labelledby="scanDetailsTitle"
+        aria-hidden="true"
+    >
 
-                Top File Extensions
+        <header class="soc-drawer__header">
 
-            </h3>
+            <div>
+                <p class="soc-eyebrow">FILE INTELLIGENCE</p>
+                <h2 id="scanDetailsTitle">Scan Details</h2>
+            </div>
 
-        </div>
+            <button
+                id="closeScanDetails"
+                type="button"
+                aria-label="Close scan details"
+            >
+                <i class="fa-solid fa-xmark"></i>
+            </button>
 
-        {{ extension_chart|safe }}
+        </header>
 
-    </div>
 
-    <!-- Detection Rate -->
+        <div class="soc-scan-details__hero">
 
-    <div class="mini-cards">
-
-        <div class="mini-card">
-
-            <h5>Detection Rate</h5>
-
-            <h2>{{ rate }}%</h2>
-
-        </div>
-
-        <div class="mini-card">
-
-            <h5>Health Score</h5>
-
-            <h2>{{ score }}/100</h2>
-
-        </div>
-
-    </div>
-
-</div>
-
-</div>
-
-<!-- ================= TABLE SECTION START ================= -->
-
-<div class="bottom-grid">
-    <!-- ================= RECENT SCANS ================= -->
-
-<div class="chart-card recent-card">
-
-    <div class="card-header">
-
-        <h3>
-
-            <i class="fa-solid fa-clock-rotate-left"></i>
-
-            Recent Scan Activity
-
-        </h3>
-
-    </div>
-
-    <table class="recent-table">
-
-        <thead>
-
-            <tr>
-
-                <th>File Name</th>
-
-                <th>Prediction</th>
-
-                <th>Risk</th>
-
-                <th>Scan Time</th>
-
-            </tr>
-
-        </thead>
-
-        <tbody>
-
-        {% for scan in recent %}
-
-            <tr>
-
-                <td>{{ scan.filename }}</td>
-
-                <td>
-
-                    {% if scan.prediction=="Safe" %}
-
-                        <span class="safe-badge">
-
-                            {{ scan.prediction }}
-
-                        </span>
-
-                    {% else %}
-
-                        <span class="danger-badge">
-
-                            {{ scan.prediction }}
-
-                        </span>
-
-                    {% endif %}
-
-                </td>
-
-                <td>{{ scan.risk }}</td>
-
-                <td>{{ scan.scan_time }}</td>
-
-            </tr>
-
-        {% endfor %}
-
-        </tbody>
-
-    </table>
-
-</div>
-
-<!-- ================= SYSTEM STATUS ================= -->
-
-<div class="chart-card status-card">
-
-    <div class="card-header">
-
-        <h3>
-
-            <i class="fa-solid fa-server"></i>
-
-            AI System Status
-
-        </h3>
-
-    </div>
-
-    <div class="status-grid">
-
-        <div class="status-item">
-
-            <span>AI Engine</span>
-
-            <span class="online">
-
-                ● ONLINE
-
+            <span class="soc-scan-details__icon">
+                <i class="fa-solid fa-file-shield"></i>
             </span>
 
-        </div>
-
-        <div class="status-item">
-
-            <span>XGBoost Model</span>
-
-            <span class="online">
-
-                ● ACTIVE
-
-            </span>
+            <div>
+                <small>SELECTED FILE</small>
+                <h3 id="scanDetailFilename">No file selected</h3>
+                <span id="scanDetailPrediction" class="soc-status-chip">
+                    Waiting
+                </span>
+            </div>
 
         </div>
 
-        <div class="status-item">
 
-            <span>Database</span>
+        <dl class="soc-detail-list">
 
-            <span class="online">
+            <div>
+                <dt>Risk Level</dt>
+                <dd id="scanDetailRisk">—</dd>
+            </div>
 
-                ● CONNECTED
+            <div>
+                <dt>Scan Time</dt>
+                <dd id="scanDetailTime">—</dd>
+            </div>
 
-            </span>
+            <div>
+                <dt>AI Engine</dt>
+                <dd>XGBoost Classifier</dd>
+            </div>
+
+            <div>
+                <dt>Analysis Status</dt>
+                <dd class="soc-text-safe">Completed</dd>
+            </div>
+
+        </dl>
+
+
+        <div class="soc-scan-details__analysis">
+
+            <h4>AI assessment</h4>
+
+            <p id="scanDetailAssessment">
+                Select a recent scan record to display its classification
+                summary.
+            </p>
+
+            <div class="soc-scan-details__confidence">
+                <div>
+                    <span>Model confidence</span>
+                    <strong>{{ security_score }}%</strong>
+                </div>
+
+                <div class="soc-resource-bar">
+                    <span data-resource-value="{{ security_score }}"></span>
+                </div>
+            </div>
 
         </div>
 
-        <div class="status-item">
 
-            <span>Threat Detection</span>
+        <footer class="soc-drawer__footer soc-drawer__footer--actions">
+            <a href="{{ url_for('history') }}">
+                Open full history
+            </a>
 
-            <span class="online">
+            <button id="closeScanDetailsSecondary" type="button">
+                Close
+            </button>
+        </footer>
 
-                ● RUNNING
+    </aside>
 
-            </span>
 
-        </div>
+    <!-- =====================================================
+         AI ASSESSMENT MODAL
+    ====================================================== -->
 
-        <div class="status-item">
+    <div
+        class="soc-modal"
+        id="aiAssessmentModal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="assessmentModalTitle"
+        aria-hidden="true"
+    >
 
-            <span>Last Scan</span>
+        <div class="soc-modal__backdrop" data-close-assessment></div>
 
-            <span>
+        <div class="soc-assessment-modal">
 
-                {{ stats.last_scan }}
+            <button
+                class="soc-assessment-modal__close"
+                id="closeAssessmentModal"
+                type="button"
+                aria-label="Close AI assessment"
+            >
+                <i class="fa-solid fa-xmark"></i>
+            </button>
 
-            </span>
 
-        </div>
+            <div class="soc-assessment-modal__icon">
+                <i class="fa-solid fa-brain"></i>
+                <span></span>
+            </div>
 
-        <div class="status-item">
+            <p class="soc-eyebrow">AI SECURITY ADVISOR</p>
 
-            <span>Health Score</span>
+            <h2 id="assessmentModalTitle">
+                Current security assessment
+            </h2>
 
-            <span class="health-score">
 
-                {{ score }}/100
+            <div class="soc-assessment-modal__score">
+                <strong>{{ security_score }}</strong>
+                <span>/100 security health</span>
+            </div>
 
-            </span>
+
+            <div class="soc-assessment-modal__content">
+
+                <article>
+                    <span>
+                        <i class="fa-solid fa-chart-pie"></i>
+                    </span>
+
+                    <div>
+                        <strong>Threat exposure</strong>
+                        <p>
+                            {{ threat_rate }}% of analysed files are currently
+                            classified as malicious.
+                        </p>
+                    </div>
+                </article>
+
+                <article>
+                    <span>
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                    </span>
+
+                    <div>
+                        <strong>Priority incidents</strong>
+                        <p>
+                            {{ critical_scans }} critical record(s) require
+                            immediate analyst attention.
+                        </p>
+                    </div>
+                </article>
+
+                <article>
+                    <span>
+                        <i class="fa-solid fa-shield-check"></i>
+                    </span>
+
+                    <div>
+                        <strong>Protected activity</strong>
+                        <p>
+                            {{ safe_scans }} file(s) have been classified as safe.
+                        </p>
+                    </div>
+                </article>
+
+            </div>
+
+
+            <div class="soc-assessment-modal__actions">
+
+                <a
+                    class="soc-button soc-button--primary"
+                    href="{{ url_for('upload') }}"
+                >
+                    Scan another file
+                </a>
+
+                <a
+                    class="soc-button soc-button--secondary"
+                    href="{{ url_for('history') }}"
+                >
+                    Review scan history
+                </a>
+
+            </div>
 
         </div>
 
     </div>
 
-</div>
 
-</div>
+    <!-- =====================================================
+         EXPANDED CHART MODAL
+    ====================================================== -->
+
+    <div
+        class="soc-modal"
+        id="expandedChartModal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="expandedChartTitle"
+        aria-hidden="true"
+    >
+
+        <div class="soc-modal__backdrop" data-close-expanded-chart></div>
+
+        <div class="soc-expanded-chart">
+
+            <header>
+                <div>
+                    <p class="soc-eyebrow">EXPANDED ANALYTICS</p>
+                    <h2 id="expandedChartTitle">Chart View</h2>
+                </div>
+
+                <button
+                    id="closeExpandedChart"
+                    type="button"
+                    aria-label="Close expanded chart"
+                >
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </header>
+
+            <div
+                class="soc-expanded-chart__content"
+                id="expandedChartContent"
+            ></div>
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         TOAST AND ACCESSIBILITY REGIONS
+    ====================================================== -->
+
+    <div
+        class="soc-toast-region"
+        id="dashboardToastRegion"
+        aria-live="polite"
+        aria-atomic="true"
+    ></div>
+
+    <div
+        class="soc-sr-only"
+        id="dashboardAccessibilityStatus"
+        role="status"
+        aria-live="polite"
+    ></div>
+
+</main>
+
+<script
+    src="{{ url_for('static', filename='js/dashboard.js') }}"
+    defer
+></script>
 
-<!-- ================= NOTIFICATION ================= -->
-
-<div class="notification-box">
-
-    <button id="notificationBtn">
-
-        <i class="fa-solid fa-bell"></i>
-
-        <span id="notificationCount">
-
-            0
-
-        </span>
-
-    </button>
-
-</div>
-
-<script src="{{ url_for('static', filename='js/notification.js') }}"></script>
-
-</div>
-<style>
-
-/* ===== FLOATING AI HOLOGRAM ===== */
-
-.hero-v2-center .security-orbit{
-    position:relative !important;
-    min-height:460px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    overflow:visible;
-}
-
-/* Floating shield container */
-
-.hero-v2-center .hero-logo-box{
-    position:relative !important;
-    z-index:10;
-    animation:shieldFloat 3s ease-in-out infinite;
-}
-
-/* Shield glow */
-
-.hero-v2-center .security-logo{
-    width:290px !important;
-    filter:
-        drop-shadow(0 0 12px #00d9ff)
-        drop-shadow(0 0 35px rgba(0,153,255,.9))
-        drop-shadow(0 0 70px rgba(0,229,255,.45)) !important;
-
-    animation:shieldGlow 2s ease-in-out infinite;
-}
-
-/* Moving scan line */
-
-.hero-v2-center .hero-logo-box::after{
-    content:"";
-    position:absolute;
-    z-index:20;
-
-    left:10%;
-    top:10%;
-
-    width:80%;
-    height:3px;
-
-    background:#00f7ff;
-
-    box-shadow:
-        0 0 8px #00f7ff,
-        0 0 20px #00f7ff;
-
-    animation:shieldScan 2.6s linear infinite;
-}
-
-/* Rotating rings */
-
-.hero-v2-center .energy-orbit{
-    position:absolute;
-    top:50%;
-    left:50%;
-
-    border-radius:50%;
-    border:2px solid rgba(0,229,255,.65);
-
-    box-shadow:
-        0 0 12px rgba(0,229,255,.8),
-        inset 0 0 15px rgba(0,229,255,.2);
-}
-
-.hero-v2-center .energy-orbit-one{
-    width:400px;
-    height:125px;
-
-    animation:orbitOne 7s linear infinite;
-}
-
-.hero-v2-center .energy-orbit-two{
-    width:360px;
-    height:105px;
-
-    border-color:rgba(155,70,255,.7);
-
-    animation:orbitTwo 6s linear infinite;
-}
-
-/* Glowing orbit particles */
-
-.hero-v2-center .energy-dot{
-    position:absolute;
-    z-index:15;
-
-    width:9px;
-    height:9px;
-
-    border-radius:50%;
-    background:#00f7ff;
-
-    box-shadow:
-        0 0 8px #00f7ff,
-        0 0 20px #00f7ff;
-
-    animation:particlePulse 1.5s ease-in-out infinite;
-}
-
-/* Hologram beam */
-
-.hero-v2-center .hologram-beam{
-    position:absolute;
-    z-index:2;
-
-    bottom:55px;
-    left:50%;
-
-    width:200px;
-    height:250px;
-
-    transform:translateX(-50%);
-
-    background:linear-gradient(
-        to top,
-        rgba(0,229,255,.30),
-        rgba(0,153,255,.08),
-        transparent
-    );
-
-    clip-path:polygon(30% 100%,70% 100%,56% 0,44% 0);
-
-    filter:blur(4px);
-
-    animation:beamPulse 2s ease-in-out infinite;
-}
-
-/* Glowing platform */
-
-.hero-v2-center .hologram-platform{
-    position:absolute;
-    z-index:5;
-
-    left:50%;
-    bottom:35px;
-
-    width:310px;
-    height:75px;
-
-    transform:translateX(-50%);
-
-    border-radius:50%;
-    border:2px solid rgba(0,229,255,.65);
-
-    background:radial-gradient(
-        ellipse,
-        rgba(0,229,255,.25),
-        rgba(0,120,255,.08),
-        transparent 70%
-    );
-
-    box-shadow:
-        0 0 18px rgba(0,229,255,.75),
-        0 0 45px rgba(0,140,255,.45),
-        inset 0 0 22px rgba(0,229,255,.3);
-
-    animation:platformPulse 2s ease-in-out infinite;
-}
-
-/* ===== ANIMATIONS ===== */
-
-@keyframes shieldFloat{
-    0%,100%{
-        transform:translateY(0);
-    }
-
-    50%{
-        transform:translateY(-18px);
-    }
-}
-
-@keyframes shieldGlow{
-    0%,100%{
-        opacity:.88;
-        transform:scale(1);
-    }
-
-    50%{
-        opacity:1;
-        transform:scale(1.035);
-    }
-}
-
-@keyframes shieldScan{
-    0%{
-        top:12%;
-        opacity:0;
-    }
-
-    15%{
-        opacity:1;
-    }
-
-    85%{
-        opacity:1;
-    }
-
-    100%{
-        top:88%;
-        opacity:0;
-    }
-}
-
-@keyframes orbitOne{
-    from{
-        transform:translate(-50%,-50%) rotate(0deg);
-    }
-
-    to{
-        transform:translate(-50%,-50%) rotate(360deg);
-    }
-}
-
-@keyframes orbitTwo{
-    from{
-        transform:translate(-50%,-50%) rotate(360deg);
-    }
-
-    to{
-        transform:translate(-50%,-50%) rotate(0deg);
-    }
-}
-
-@keyframes particlePulse{
-    0%,100%{
-        transform:scale(.7);
-        opacity:.45;
-    }
-
-    50%{
-        transform:scale(1.5);
-        opacity:1;
-    }
-}
-
-@keyframes beamPulse{
-    0%,100%{
-        opacity:.35;
-        transform:translateX(-50%) scaleX(.85);
-    }
-
-    50%{
-        opacity:.9;
-        transform:translateX(-50%) scaleX(1.1);
-    }
-}
-
-@keyframes platformPulse{
-    0%,100%{
-        transform:translateX(-50%) scale(.94);
-        opacity:.7;
-    }
-
-    50%{
-        transform:translateX(-50%) scale(1.04);
-        opacity:1;
-    }
-}
-
-</style>
-<style>
-
-/* NEW HOLOGRAM - UNIQUE CLASSES */
-
-.new-hologram{
-    position:relative;
-    width:450px;
-    height:460px;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    overflow:visible;
-}
-
-.new-shield{
-    position:relative;
-    z-index:10;
-    width:300px;
-    height:330px;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    animation:newFloat 2.7s ease-in-out infinite;
-}
-
-.new-shield img{
-    width:290px !important;
-    height:320px !important;
-    object-fit:contain;
-    filter:
-        drop-shadow(0 0 18px #00eaff)
-        drop-shadow(0 0 45px #0077ff)
-        drop-shadow(0 0 75px rgba(0,234,255,.55));
-}
-
-.new-orbit{
-    position:absolute;
-    left:50%;
-    top:48%;
-    border-radius:50%;
-    pointer-events:none;
-}
-
-.orbit-a{
-    width:410px;
-    height:145px;
-    border:2px solid #00eaff;
-    box-shadow:0 0 18px #00cfff;
-    animation:newOrbitA 6s linear infinite;
-}
-
-.orbit-b{
-    width:350px;
-    height:115px;
-    border:2px solid #9d4dff;
-    box-shadow:0 0 18px #9d4dff;
-    animation:newOrbitB 5s linear infinite;
-}
-
-.new-scan-line{
-    position:absolute;
-    z-index:15;
-    top:15%;
-    left:8%;
-    width:84%;
-    height:3px;
-    background:#00ffff;
-    box-shadow:
-        0 0 10px #00ffff,
-        0 0 25px #00ffff;
-    animation:newScan 2.2s linear infinite;
-}
-
-.new-light-beam{
-    position:absolute;
-    z-index:2;
-    bottom:45px;
-    left:50%;
-    width:210px;
-    height:260px;
-    transform:translateX(-50%);
-    background:linear-gradient(
-        to top,
-        rgba(0,234,255,.38),
-        rgba(0,120,255,.10),
-        transparent
-    );
-    clip-path:polygon(25% 100%,75% 100%,58% 0,42% 0);
-    filter:blur(5px);
-    animation:newBeam 2s ease-in-out infinite;
-}
-
-.new-platform{
-    position:absolute;
-    z-index:5;
-    left:50%;
-    bottom:25px;
-    width:320px;
-    height:75px;
-    transform:translateX(-50%);
-    border-radius:50%;
-    border:2px solid #00eaff;
-    background:radial-gradient(
-        ellipse,
-        rgba(0,234,255,.40),
-        rgba(0,80,255,.12),
-        transparent 70%
-    );
-    box-shadow:
-        0 0 20px #00eaff,
-        0 0 55px rgba(0,120,255,.65),
-        inset 0 0 25px rgba(0,234,255,.40);
-    animation:newPlatform 2s ease-in-out infinite;
-}
-
-@keyframes newFloat{
-    0%,100%{
-        transform:translateY(0);
-    }
-
-    50%{
-        transform:translateY(-22px);
-    }
-}
-
-@keyframes newOrbitA{
-    from{
-        transform:translate(-50%,-50%) rotate(0deg);
-    }
-
-    to{
-        transform:translate(-50%,-50%) rotate(360deg);
-    }
-}
-
-@keyframes newOrbitB{
-    from{
-        transform:translate(-50%,-50%) rotate(360deg);
-    }
-
-    to{
-        transform:translate(-50%,-50%) rotate(0deg);
-    }
-}
-
-@keyframes newScan{
-    0%{
-        top:12%;
-        opacity:0;
-    }
-
-    15%{
-        opacity:1;
-    }
-
-    85%{
-        opacity:1;
-    }
-
-    100%{
-        top:88%;
-        opacity:0;
-    }
-}
-
-@keyframes newBeam{
-    0%,100%{
-        opacity:.35;
-    }
-
-    50%{
-        opacity:1;
-    }
-}
-
-@keyframes newPlatform{
-    0%,100%{
-        transform:translateX(-50%) scale(.92);
-        opacity:.7;
-    }
-
-    50%{
-        transform:translateX(-50%) scale(1.06);
-        opacity:1;
-    }
-}
-
-</style>
-
-<script>
-
-const heroCanvas=document.getElementById("heroParticles");
-const ctx=heroCanvas.getContext("2d");
-
-function resizeHero(){
-
-heroCanvas.width=heroCanvas.offsetWidth;
-heroCanvas.height=heroCanvas.offsetHeight;
-
-}
-
-resizeHero();
-
-window.addEventListener("resize",resizeHero);
-
-let particles=[];
-
-class Particle{
-
-constructor(){
-
-this.x=Math.random()*heroCanvas.width;
-this.y=Math.random()*heroCanvas.height;
-
-this.vx=Math.random()*0.5-0.25;
-this.vy=Math.random()*0.5-0.25;
-
-this.r=Math.random()*2+1;
-
-}
-
-update(){
-
-this.x+=this.vx;
-this.y+=this.vy;
-
-if(this.x<0||this.x>heroCanvas.width) this.vx*=-1;
-if(this.y<0||this.y>heroCanvas.height) this.vy*=-1;
-
-}
-
-draw(){
-
-ctx.beginPath();
-
-ctx.arc(this.x,this.y,this.r,0,Math.PI*2);
-
-ctx.fillStyle="#00d9ff";
-
-ctx.shadowBlur=12;
-ctx.shadowColor="#00d9ff";
-
-ctx.fill();
-
-ctx.shadowBlur=0;
-
-}
-
-}
-
-for(let i=0;i<60;i++){
-
-particles.push(new Particle());
-
-}
-
-function animate(){
-
-ctx.clearRect(0,0,heroCanvas.width,heroCanvas.height);
-
-for(let p of particles){
-
-p.update();
-p.draw();
-
-}
-
-for(let i=0;i<particles.length;i++){
-
-for(let j=i+1;j<particles.length;j++){
-
-let dx=particles[i].x-particles[j].x;
-let dy=particles[i].y-particles[j].y;
-
-let dist=Math.sqrt(dx*dx+dy*dy);
-
-if(dist<130){
-
-ctx.beginPath();
-
-ctx.strokeStyle="rgba(0,217,255,"+(1-dist/130)*0.15+")";
-
-ctx.moveTo(particles[i].x,particles[i].y);
-
-ctx.lineTo(particles[j].x,particles[j].y);
-
-ctx.stroke();
-
-}
-
-}
-
-}
-
-requestAnimationFrame(animate);
-
-}
-
-animate();
-
-</script>
 {% endblock %}
