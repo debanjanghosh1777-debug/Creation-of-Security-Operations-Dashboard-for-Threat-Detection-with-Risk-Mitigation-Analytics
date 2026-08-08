@@ -261,6 +261,88 @@
 
 
     <!-- =====================================================
+         CONTROLLED LIVE DATA PLAYBACK
+         Dashboard-only interaction layer. It reads a CSV selected by the
+         operator in the browser and does not modify Upload/Scan routes.
+    ====================================================== -->
+
+    <section class="soc-live-feed-control" id="liveFeedControl" aria-labelledby="liveFeedControlTitle">
+
+        <div class="soc-live-feed-control__identity">
+            <div class="soc-live-feed-control__status-icon" aria-hidden="true">
+                <i class="fa-solid fa-wave-square"></i>
+            </div>
+
+            <div>
+                <p class="soc-eyebrow">CONTROLLED EVENT PLAYBACK</p>
+                <h2 id="liveFeedControlTitle">Live Threat Data Stream</h2>
+                <p id="liveFeedStatusText">Load the threat CSV to begin a real-data dashboard simulation.</p>
+            </div>
+        </div>
+
+        <div class="soc-live-feed-control__actions">
+            <input
+                class="soc-live-feed-file-input"
+                id="liveFeedFileInput"
+                type="file"
+                accept=".csv,text/csv"
+            >
+
+            <button class="soc-live-feed-button soc-live-feed-button--load" id="liveFeedLoadButton" type="button">
+                <i class="fa-solid fa-file-csv"></i>
+                <span>Load Dataset</span>
+            </button>
+
+            <label class="soc-live-feed-rate" for="liveFeedRate">
+                <span>EVENT RATE</span>
+                <select id="liveFeedRate">
+                    <option value="1">1 / sec</option>
+                    <option value="2">2 / sec</option>
+                    <option value="5" selected>5 / sec</option>
+                    <option value="10">10 / sec</option>
+                </select>
+            </label>
+
+            <button class="soc-live-feed-button soc-live-feed-button--start" id="liveFeedStartButton" type="button" disabled>
+                <i class="fa-solid fa-play"></i>
+                <span>Start Feed</span>
+            </button>
+
+            <button class="soc-live-feed-button" id="liveFeedResetButton" type="button" disabled>
+                <i class="fa-solid fa-rotate-left"></i>
+                <span>Reset</span>
+            </button>
+        </div>
+
+        <div class="soc-live-feed-progress" aria-live="polite">
+            <div class="soc-live-feed-progress__meta">
+                <span>
+                    <span class="soc-live-feed-state-dot" id="liveFeedStateDot"></span>
+                    <strong id="liveFeedStateLabel">STANDBY</strong>
+                </span>
+
+                <span>
+                    Processed
+                    <strong id="liveFeedProcessed">0</strong>
+                    /
+                    <strong id="liveFeedTotal">0</strong>
+                </span>
+            </div>
+
+            <div class="soc-live-feed-progress__track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="liveFeedProgressTrack">
+                <span id="liveFeedProgressBar"></span>
+            </div>
+
+            <div class="soc-live-feed-progress__latest">
+                <span>LATEST EVENT</span>
+                <strong id="liveFeedLatestEvent">No event received</strong>
+            </div>
+        </div>
+
+    </section>
+
+
+    <!-- =====================================================
          HERO COMMAND CENTER
     ====================================================== -->
 
@@ -475,7 +557,7 @@
                     aria-label="Security posture score {{ security_score }} out of 100"
                 >
                     <div class="soc-score-gauge__inner">
-                        <strong>{{ security_score }}</strong>
+                        <strong id="liveSecurityScoreValue">{{ security_score }}</strong>
                         <span>/ 100</span>
                     </div>
                 </div>
@@ -483,20 +565,20 @@
                 <div class="soc-posture-score-card__footer">
 
                     {% if security_score >= 80 %}
-                        <span class="soc-status-chip soc-status-chip--safe">
+                        <span class="soc-status-chip soc-status-chip--safe" id="liveSecurityPostureChip">
                             Strong
                         </span>
-                        <small>Security controls are performing optimally.</small>
+                        <small id="liveSecurityPostureText">Security controls are performing optimally.</small>
                     {% elif security_score >= 50 %}
-                        <span class="soc-status-chip soc-status-chip--warning">
+                        <span class="soc-status-chip soc-status-chip--warning" id="liveSecurityPostureChip">
                             Review
                         </span>
-                        <small>Investigate suspicious scan activity.</small>
+                        <small id="liveSecurityPostureText">Investigate suspicious scan activity.</small>
                     {% else %}
-                        <span class="soc-status-chip soc-status-chip--critical">
+                        <span class="soc-status-chip soc-status-chip--critical" id="liveSecurityPostureChip">
                             At Risk
                         </span>
-                        <small>Immediate security review is recommended.</small>
+                        <small id="liveSecurityPostureText">Immediate security review is recommended.</small>
                     {% endif %}
 
                 </div>
@@ -513,7 +595,7 @@
 
                     <div>
                         <small>ACTIVE THREATS</small>
-                        <strong>{{ malicious_scans }}</strong>
+                        <strong id="liveActiveThreats">{{ malicious_scans }}</strong>
                     </div>
 
                     <span class="soc-posture-metric__trend">
@@ -528,7 +610,7 @@
 
                     <div>
                         <small>CRITICAL</small>
-                        <strong>{{ critical_scans }}</strong>
+                        <strong id="liveCriticalThreats">{{ critical_scans }}</strong>
                     </div>
 
                     <span class="soc-posture-metric__trend">
@@ -543,7 +625,7 @@
 
                     <div>
                         <small>AI CONFIDENCE</small>
-                        <strong>{{ security_score }}%</strong>
+                        <strong id="liveAiConfidence">{{ security_score }}%</strong>
                     </div>
 
                     <span class="soc-posture-metric__trend">
@@ -557,8 +639,8 @@
                     </span>
 
                     <div>
-                        <small>LAST SCAN</small>
-                        <strong>{{ last_scan_value }}</strong>
+                        <small>LAST EVENT</small>
+                        <strong id="liveLastEvent">{{ last_scan_value }}</strong>
                     </div>
 
                     <span class="soc-posture-metric__trend">
@@ -614,6 +696,7 @@
                 </div>
 
                 <strong
+                    id="liveTotalEvents"
                     class="soc-metric-card__value counter"
                     data-counter="{{ total_scans }}"
                 >
@@ -653,6 +736,7 @@
                 </div>
 
                 <strong
+                    id="liveSafeEvents"
                     class="soc-metric-card__value counter"
                     data-counter="{{ safe_scans }}"
                 >
@@ -692,6 +776,7 @@
                 </div>
 
                 <strong
+                    id="liveThreatEvents"
                     class="soc-metric-card__value counter"
                     data-counter="{{ malicious_scans }}"
                 >
@@ -705,7 +790,7 @@
                     </span>
 
                     <span class="soc-metric-card__trend soc-metric-card__trend--warning">
-                        {{ threat_rate }}% RATE
+                        <span id="liveThreatRate">{{ threat_rate }}%</span> RATE
                     </span>
                 </div>
 
@@ -729,6 +814,7 @@
                 </div>
 
                 <strong
+                    id="liveCriticalEvents"
                     class="soc-metric-card__value counter"
                     data-counter="{{ critical_scans }}"
                 >
@@ -2461,7 +2547,7 @@
 </main>
 
 <script
-    src="{{ url_for('static', filename='js/dashboard.js') }}"
+    src="{{ url_for('static', filename='js/dashboard.js') }}?v=live20260808"
     defer
 ></script>
 

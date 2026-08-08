@@ -2847,3 +2847,567 @@
 
     });
 })();
+
+
+/* ============================================================================
+   DASHBOARD LIVE THREAT DATA ENGINE v1.0
+   ---------------------------------------------------------------------------
+   This module is intentionally isolated from Flask Upload/Scan functionality.
+   It reads a CSV selected in the browser, replays its actual rows, and updates
+   only dashboard DOM/Plotly elements. It does not POST files to /upload, does
+   not write to SQLite, and does not replace any existing scan functions.
+   ============================================================================ */
+
+(() => {
+    "use strict";
+
+    const onReady = (callback) => {
+        if (document.readyState === "loading") {
+            document.addEventListener("DOMContentLoaded", callback, { once: true });
+        } else {
+            callback();
+        }
+    };
+
+    onReady(() => {
+        const dashboard = document.getElementById("socDashboard");
+        const control = document.getElementById("liveFeedControl");
+        if (!dashboard || !control) return;
+
+        const el = {
+            file: document.getElementById("liveFeedFileInput"),
+            load: document.getElementById("liveFeedLoadButton"),
+            start: document.getElementById("liveFeedStartButton"),
+            reset: document.getElementById("liveFeedResetButton"),
+            rate: document.getElementById("liveFeedRate"),
+            statusText: document.getElementById("liveFeedStatusText"),
+            stateDot: document.getElementById("liveFeedStateDot"),
+            stateLabel: document.getElementById("liveFeedStateLabel"),
+            processed: document.getElementById("liveFeedProcessed"),
+            total: document.getElementById("liveFeedTotal"),
+            progressTrack: document.getElementById("liveFeedProgressTrack"),
+            progressBar: document.getElementById("liveFeedProgressBar"),
+            latest: document.getElementById("liveFeedLatestEvent"),
+
+            totalEvents: document.getElementById("liveTotalEvents"),
+            safeEvents: document.getElementById("liveSafeEvents"),
+            threatEvents: document.getElementById("liveThreatEvents"),
+            criticalEvents: document.getElementById("liveCriticalEvents"),
+            threatRate: document.getElementById("liveThreatRate"),
+
+            scoreGauge: document.getElementById("securityScoreGauge"),
+            scoreValue: document.getElementById("liveSecurityScoreValue"),
+            postureChip: document.getElementById("liveSecurityPostureChip"),
+            postureText: document.getElementById("liveSecurityPostureText"),
+            activeThreats: document.getElementById("liveActiveThreats"),
+            criticalThreats: document.getElementById("liveCriticalThreats"),
+            aiConfidence: document.getElementById("liveAiConfidence"),
+            lastEvent: document.getElementById("liveLastEvent"),
+            notificationCount: document.getElementById("dashboardNotificationCount"),
+            recentBody: document.getElementById("recentScanTableBody")
+        };
+
+        const state = {
+            rows: [],
+            index: 0,
+            timer: null,
+            running: false,
+            fileName: "",
+            totals: null
+        };
+
+        const emptyTotals = () => ({
+            total: 0,
+            safe: 0,
+            malicious: 0,
+            critical: 0,
+            confidenceSum: 0,
+            confidenceCount: 0,
+            riskScoreSum: 0,
+            riskScoreCount: 0,
+            severity: { Critical: 0, High: 0, Medium: 0, Low: 0 },
+            daily: new Map(),
+            monthly: new Map(),
+            extensions: new Map(),
+            recent: []
+        });
+
+        state.totals = emptyTotals();
+
+        const toNumber = (value, fallback = 0) => {
+            const n = Number.parseFloat(String(value ?? "").replace(/[^0-9.+-]/g, ""));
+            return Number.isFinite(n) ? n : fallback;
+        };
+
+        const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+
+        const isTrue = (value) => /^(true|1|yes|y|malicious|threat)$/i.test(String(value ?? "").trim());
+
+        const escapeHtml = (value) => String(value ?? "")
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#039;");
+
+        const parseCsv = (text) => {
+            const matrix = [];
+            let row = [];
+            let field = "";
+            let quoted = false;
+
+            for (let i = 0; i < text.length; i += 1) {
+                const ch = text[i];
+                const next = text[i + 1];
+
+                if (ch === '"') {
+                    if (quoted && next === '"') {
+                        field += '"';
+                        i += 1;
+                    } else {
+                        quoted = !quoted;
+                    }
+                    continue;
+                }
+
+                if (ch === "," && !quoted) {
+                    row.push(field);
+                    field = "";
+                    continue;
+                }
+
+                if ((ch === "\n" || ch === "\r") && !quoted) {
+                    if (ch === "\r" && next === "\n") i += 1;
+                    row.push(field);
+                    if (row.some((cell) => String(cell).trim() !== "")) matrix.push(row);
+                    row = [];
+                    field = "";
+                    continue;
+                }
+
+                field += ch;
+            }
+
+            if (field.length || row.length) {
+                row.push(field);
+                if (row.some((cell) => String(cell).trim() !== "")) matrix.push(row);
+            }
+
+            if (matrix.length < 2) return [];
+
+            const headers = matrix[0].map((h) => h.trim().replace(/^\uFEFF/, ""));
+            return matrix.slice(1).map((cells) => {
+                const item = {};
+                headers.forEach((header, index) => {
+                    item[header] = (cells[index] ?? "").trim();
+                });
+                return item;
+            });
+        };
+
+        const setState = (mode, label, message) => {
+            control.dataset.feedState = mode;
+            if (el.stateLabel) el.stateLabel.textContent = label;
+            if (el.statusText && message) el.statusText.textContent = message;
+        };
+
+        const formatInt = (value) => Math.round(value).toLocaleString();
+
+        const animateValue = (node, value, suffix = "") => {
+            if (!node) return;
+            node.classList.remove("soc-live-value-flash");
+            void node.offsetWidth;
+            node.textContent = `${value}${suffix}`;
+            node.classList.add("soc-live-value-flash");
+        };
+
+        const updatePosture = (score) => {
+            const rounded = Math.round(score);
+            if (el.scoreGauge) {
+                el.scoreGauge.dataset.score = String(rounded);
+                el.scoreGauge.style.setProperty("--score-angle", `${rounded * 3.6}deg`);
+                el.scoreGauge.setAttribute("aria-label", `Security posture score ${rounded} out of 100`);
+            }
+            if (el.scoreValue) el.scoreValue.textContent = String(rounded);
+            if (!el.postureChip || !el.postureText) return;
+
+            el.postureChip.classList.remove(
+                "soc-status-chip--safe",
+                "soc-status-chip--warning",
+                "soc-status-chip--critical"
+            );
+
+            if (score >= 80) {
+                el.postureChip.classList.add("soc-status-chip--safe");
+                el.postureChip.textContent = "Strong";
+                el.postureText.textContent = "Live event risk remains within a healthy operating range.";
+            } else if (score >= 50) {
+                el.postureChip.classList.add("soc-status-chip--warning");
+                el.postureChip.textContent = "Review";
+                el.postureText.textContent = "Live event risk is elevated and should be reviewed.";
+            } else {
+                el.postureChip.classList.add("soc-status-chip--critical");
+                el.postureChip.textContent = "At Risk";
+                el.postureText.textContent = "The current live event stream shows a high-risk posture.";
+            }
+        };
+
+        const chartDiv = (name) =>
+            document.querySelector(`.soc-chart-container[data-chart-name="${name}"] .js-plotly-plot`);
+
+        const plotLayout = (extra = {}) => ({
+            paper_bgcolor: "rgba(0,0,0,0)",
+            plot_bgcolor: "rgba(0,0,0,0)",
+            font: { color: "#c1d0dd", family: "Inter, sans-serif", size: 11 },
+            margin: { l: 44, r: 20, t: 20, b: 42 },
+            xaxis: {
+                color: "#91a6b9",
+                gridcolor: "rgba(176,207,228,0.10)",
+                zerolinecolor: "rgba(176,207,228,0.14)"
+            },
+            yaxis: {
+                color: "#91a6b9",
+                gridcolor: "rgba(176,207,228,0.10)",
+                zerolinecolor: "rgba(176,207,228,0.14)",
+                rangemode: "tozero"
+            },
+            showlegend: false,
+            autosize: true,
+            ...extra
+        });
+
+        const chartConfig = {
+            responsive: true,
+            displayModeBar: false,
+            scrollZoom: false
+        };
+
+        const safeReact = (name, data, layout) => {
+            const plot = chartDiv(name);
+            if (!plot || !window.Plotly) return;
+            try {
+                window.Plotly.react(plot, data, layout, chartConfig);
+            } catch (error) {
+                console.warn(`[Live Feed] Could not update ${name} chart.`, error);
+            }
+        };
+
+        const sortMap = (map) => [...map.entries()].sort(([a], [b]) => String(a).localeCompare(String(b)));
+
+        const updateCharts = () => {
+            const totals = state.totals;
+            const daily = sortMap(totals.daily);
+            const monthly = sortMap(totals.monthly);
+
+            safeReact("daily-activity", [{
+                type: "scatter",
+                mode: "lines+markers",
+                x: daily.map(([key]) => key),
+                y: daily.map(([, value]) => value),
+                line: { width: 2 },
+                marker: { size: 6 },
+                hovertemplate: "%{x}<br>Events: %{y}<extra></extra>"
+            }], plotLayout());
+
+            safeReact("threat-distribution", [{
+                type: "pie",
+                labels: ["Safe", "Malicious"],
+                values: [totals.safe, totals.malicious],
+                hole: 0.58,
+                textinfo: "label+percent",
+                hovertemplate: "%{label}: %{value}<extra></extra>"
+            }], plotLayout({ margin: { l: 12, r: 12, t: 12, b: 12 } }));
+
+            const severityOrder = ["Critical", "High", "Medium", "Low"];
+            safeReact("risk-distribution", [{
+                type: "bar",
+                x: severityOrder,
+                y: severityOrder.map((name) => totals.severity[name] || 0),
+                hovertemplate: "%{x}: %{y}<extra></extra>"
+            }], plotLayout());
+
+            safeReact("monthly-trend", [{
+                type: "scatter",
+                mode: "lines+markers",
+                x: monthly.map(([key]) => key),
+                y: monthly.map(([, value]) => value),
+                line: { width: 2 },
+                marker: { size: 6 },
+                fill: "tozeroy",
+                hovertemplate: "%{x}<br>Events: %{y}<extra></extra>"
+            }], plotLayout());
+
+            const extensionData = [...totals.extensions.entries()]
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 8);
+
+            safeReact("file-extensions", [{
+                type: "bar",
+                orientation: "h",
+                y: extensionData.map(([key]) => key).reverse(),
+                x: extensionData.map(([, value]) => value).reverse(),
+                hovertemplate: "%{y}: %{x}<extra></extra>"
+            }], plotLayout({ margin: { l: 70, r: 18, t: 20, b: 38 } }));
+        };
+
+        const updateRecentTable = () => {
+            if (!el.recentBody) return;
+            const rows = state.totals.recent;
+            if (!rows.length) {
+                el.recentBody.innerHTML = '<tr class="soc-table-empty-row"><td colspan="5">Waiting for live events…</td></tr>';
+                return;
+            }
+
+            el.recentBody.innerHTML = rows.map((event) => {
+                const malicious = isTrue(event.is_malicious);
+                const prediction = malicious ? "Malicious" : "Safe";
+                const severity = event.severity || "Low";
+                const filename = event.file_name || event.event_id || "Threat event";
+                const timestamp = event.timestamp || "Live";
+                const chip = malicious ? "soc-status-chip--critical" : "soc-status-chip--safe";
+                const icon = malicious ? "fa-shield-virus" : "fa-circle-check";
+
+                return `
+                    <tr data-scan-row data-prediction="${malicious ? "malicious" : "safe"}" data-search-text="${escapeHtml(`${filename} ${prediction} ${severity}`.toLowerCase())}">
+                        <td>
+                            <div class="soc-file-cell">
+                                <span class="soc-file-cell__icon"><i class="fa-solid fa-file-shield"></i></span>
+                                <div>
+                                    <strong>${escapeHtml(filename)}</strong>
+                                    <small>${escapeHtml(event.attack_type || "Live threat telemetry")}</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td><span class="soc-status-chip ${chip}"><i class="fa-solid ${icon}"></i> ${prediction}</span></td>
+                        <td><span class="soc-risk-label" data-risk-value="${escapeHtml(severity)}"><span></span>${escapeHtml(severity)}</span></td>
+                        <td><time>${escapeHtml(timestamp)}</time></td>
+                        <td><span class="soc-live-row-indicator" title="Live dataset event"><i class="fa-solid fa-satellite-dish"></i></span></td>
+                    </tr>`;
+            }).join("");
+        };
+
+        const updateDashboard = (latestEvent = null) => {
+            const t = state.totals;
+            const threatRate = t.total ? (t.malicious / t.total) * 100 : 0;
+            const avgConfidence = t.confidenceCount ? t.confidenceSum / t.confidenceCount : 0;
+            const avgRisk = t.riskScoreCount ? t.riskScoreSum / t.riskScoreCount : 0;
+            const health = clamp(100 - avgRisk, 0, 100);
+
+            animateValue(el.totalEvents, formatInt(t.total));
+            animateValue(el.safeEvents, formatInt(t.safe));
+            animateValue(el.threatEvents, formatInt(t.malicious));
+            animateValue(el.criticalEvents, formatInt(t.critical));
+
+            if (el.threatRate) el.threatRate.textContent = `${threatRate.toFixed(1)}%`;
+            if (el.activeThreats) el.activeThreats.textContent = formatInt(t.malicious);
+            if (el.criticalThreats) el.criticalThreats.textContent = formatInt(t.critical);
+            if (el.aiConfidence) el.aiConfidence.textContent = `${avgConfidence.toFixed(1)}%`;
+            if (el.notificationCount) {
+                el.notificationCount.textContent = formatInt(t.critical);
+                el.notificationCount.hidden = false;
+            }
+
+            updatePosture(health);
+
+            if (latestEvent) {
+                const label = `${latestEvent.attack_type || "Threat event"} • ${latestEvent.severity || "Unknown"}`;
+                if (el.latest) el.latest.textContent = label;
+                if (el.lastEvent) el.lastEvent.textContent = latestEvent.timestamp || "Just now";
+            }
+
+            if (el.processed) el.processed.textContent = formatInt(state.index);
+            if (el.total) el.total.textContent = formatInt(state.rows.length);
+
+            const progress = state.rows.length ? (state.index / state.rows.length) * 100 : 0;
+            if (el.progressBar) el.progressBar.style.width = `${progress}%`;
+            if (el.progressTrack) el.progressTrack.setAttribute("aria-valuenow", String(Math.round(progress)));
+
+            updateRecentTable();
+            updateCharts();
+        };
+
+        const extensionOf = (filename) => {
+            const match = String(filename || "").toLowerCase().match(/\.([a-z0-9]{1,10})$/i);
+            return match ? `.${match[1]}` : "other";
+        };
+
+        const dateKeys = (timestamp) => {
+            const raw = String(timestamp || "").trim();
+            const date = new Date(raw);
+            if (!Number.isNaN(date.getTime())) {
+                const daily = date.toISOString().slice(0, 10);
+                return { daily, monthly: daily.slice(0, 7) };
+            }
+            const daily = raw.slice(0, 10) || "Unknown";
+            return { daily, monthly: daily.slice(0, 7) || "Unknown" };
+        };
+
+        const accumulate = (event) => {
+            const t = state.totals;
+            t.total += 1;
+
+            const malicious = isTrue(event.is_malicious);
+            if (malicious) t.malicious += 1;
+            else t.safe += 1;
+
+            const severityRaw = String(event.severity || "Low").trim();
+            const severity = ["Critical", "High", "Medium", "Low"].find(
+                (item) => item.toLowerCase() === severityRaw.toLowerCase()
+            ) || "Low";
+            t.severity[severity] += 1;
+            if (severity === "Critical") t.critical += 1;
+
+            const confidence = toNumber(event.ai_confidence, NaN);
+            if (Number.isFinite(confidence)) {
+                t.confidenceSum += confidence <= 1 ? confidence * 100 : confidence;
+                t.confidenceCount += 1;
+            }
+
+            const riskScore = toNumber(event.risk_score, NaN);
+            if (Number.isFinite(riskScore)) {
+                t.riskScoreSum += riskScore;
+                t.riskScoreCount += 1;
+            }
+
+            const keys = dateKeys(event.timestamp);
+            t.daily.set(keys.daily, (t.daily.get(keys.daily) || 0) + 1);
+            t.monthly.set(keys.monthly, (t.monthly.get(keys.monthly) || 0) + 1);
+
+            const ext = extensionOf(event.file_name);
+            t.extensions.set(ext, (t.extensions.get(ext) || 0) + 1);
+
+            t.recent.unshift(event);
+            if (t.recent.length > 8) t.recent.length = 8;
+        };
+
+        const stopTimer = () => {
+            if (state.timer) window.clearInterval(state.timer);
+            state.timer = null;
+            state.running = false;
+        };
+
+        const updateStartButton = () => {
+            if (!el.start) return;
+            const icon = el.start.querySelector("i");
+            const label = el.start.querySelector("span");
+            if (state.running) {
+                if (icon) icon.className = "fa-solid fa-pause";
+                if (label) label.textContent = "Pause Feed";
+            } else {
+                if (icon) icon.className = "fa-solid fa-play";
+                if (label) label.textContent = state.index > 0 && state.index < state.rows.length ? "Resume Feed" : "Start Feed";
+            }
+        };
+
+        const finish = () => {
+            stopTimer();
+            updateStartButton();
+            setState("complete", "COMPLETE", `Finished processing ${formatInt(state.rows.length)} real dataset events.`);
+            if (el.start) el.start.disabled = true;
+        };
+
+        const tick = () => {
+            if (!state.running || state.index >= state.rows.length) {
+                if (state.index >= state.rows.length && state.rows.length) finish();
+                return;
+            }
+
+            const event = state.rows[state.index];
+            state.index += 1;
+            accumulate(event);
+            updateDashboard(event);
+        };
+
+        const startFeed = () => {
+            if (!state.rows.length || state.index >= state.rows.length) return;
+            stopTimer();
+            state.running = true;
+            updateStartButton();
+            setState("running", "LIVE", `Streaming ${state.fileName} using actual CSV rows.`);
+
+            const rate = Math.max(1, toNumber(el.rate?.value, 5));
+            const delay = Math.max(80, Math.round(1000 / rate));
+            tick();
+            state.timer = window.setInterval(tick, delay);
+        };
+
+        const pauseFeed = () => {
+            stopTimer();
+            updateStartButton();
+            setState("paused", "PAUSED", `Feed paused at event ${formatInt(state.index)} of ${formatInt(state.rows.length)}.`);
+        };
+
+        const resetFeed = () => {
+            stopTimer();
+            state.index = 0;
+            state.totals = emptyTotals();
+            updateStartButton();
+            if (el.start) el.start.disabled = !state.rows.length;
+            if (el.reset) el.reset.disabled = !state.rows.length;
+            if (el.latest) el.latest.textContent = "No event received";
+            if (el.lastEvent) el.lastEvent.textContent = "Waiting for feed";
+            setState(state.rows.length ? "ready" : "standby", state.rows.length ? "READY" : "STANDBY", state.rows.length ? `${formatInt(state.rows.length)} events loaded and ready.` : "Load the threat CSV to begin a real-data dashboard simulation.");
+            updateDashboard();
+        };
+
+        const validateRows = (rows) => {
+            if (!rows.length) return "The selected CSV contains no data rows.";
+            const required = ["timestamp", "severity", "risk_score", "ai_confidence", "is_malicious"];
+            const available = new Set(Object.keys(rows[0]));
+            const missing = required.filter((key) => !available.has(key));
+            return missing.length ? `Missing required columns: ${missing.join(", ")}` : "";
+        };
+
+        const loadFile = async (file) => {
+            if (!file) return;
+            stopTimer();
+            setState("loading", "LOADING", `Reading ${file.name}…`);
+
+            try {
+                const text = await file.text();
+                const rows = parseCsv(text);
+                const error = validateRows(rows);
+                if (error) throw new Error(error);
+
+                state.rows = rows;
+                state.fileName = file.name;
+                state.index = 0;
+                state.totals = emptyTotals();
+
+                if (el.start) el.start.disabled = false;
+                if (el.reset) el.reset.disabled = false;
+                if (el.total) el.total.textContent = formatInt(rows.length);
+                if (el.processed) el.processed.textContent = "0";
+                if (el.progressBar) el.progressBar.style.width = "0%";
+                if (el.progressTrack) el.progressTrack.setAttribute("aria-valuenow", "0");
+                if (el.latest) el.latest.textContent = "Dataset ready — press Start Feed";
+
+                updateStartButton();
+                setState("ready", "READY", `${formatInt(rows.length)} real threat events loaded from ${file.name}.`);
+                updateDashboard();
+            } catch (error) {
+                console.error("[Live Feed] Dataset load failed.", error);
+                state.rows = [];
+                if (el.start) el.start.disabled = true;
+                if (el.reset) el.reset.disabled = true;
+                setState("error", "ERROR", error.message || "Unable to read the selected CSV.");
+            }
+        };
+
+        el.load?.addEventListener("click", () => el.file?.click());
+        el.file?.addEventListener("change", () => loadFile(el.file.files?.[0]));
+        el.start?.addEventListener("click", () => state.running ? pauseFeed() : startFeed());
+        el.reset?.addEventListener("click", resetFeed);
+        el.rate?.addEventListener("change", () => {
+            if (state.running) startFeed();
+        });
+
+        document.addEventListener("visibilitychange", () => {
+            if (document.hidden && state.running) pauseFeed();
+        });
+
+        setState("standby", "STANDBY", "Load the threat CSV to begin a real-data dashboard simulation.");
+        updateStartButton();
+        console.info("[SOC Dashboard] Live threat CSV playback engine ready.");
+    });
+})();
