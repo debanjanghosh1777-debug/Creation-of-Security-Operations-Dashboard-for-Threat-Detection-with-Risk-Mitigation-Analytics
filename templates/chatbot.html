@@ -1,0 +1,147 @@
+<!-- ========================= -->
+<!-- Floating Chat Button -->
+<!-- ========================= -->
+
+<div id="chatbot-container">
+
+    <button id="chat-toggle">
+        🤖
+    </button>
+
+</div>
+
+<!-- ========================= -->
+<!-- Chat Window -->
+<!-- ========================= -->
+
+<div id="chat-window">
+
+    <!-- Header -->
+
+    <div class="chat-header">
+
+        <div class="chat-title">
+
+            🤖 CyberShield AI
+
+        </div>
+
+        <div>
+
+            <button id="clear-btn">🗑️</button>
+
+            <button id="voice-btn">🎤</button>
+
+            <button id="close-chat">✖</button>
+
+        </div>
+
+    </div>
+
+    <!-- Messages -->
+
+    <div id="chat-box">
+
+        <div class="bot-message">
+
+            👋 Hello!
+
+            <br><br>
+
+            I am <b>CyberShield AI</b>
+
+            <br><br>
+
+            Ask me about
+
+            <ul>
+
+                <li>Malware</li>
+
+                <li>Virus</li>
+
+                <li>Trojan</li>
+
+                <li>Ransomware</li>
+
+                <li>Phishing</li>
+
+                <li>DDoS</li>
+
+                <li>SQL Injection</li>
+
+                <li>Network Security</li>
+
+            </ul>
+
+        </div>
+
+    </div>
+
+    <!-- Typing -->
+
+    <div id="typing">
+
+        🤖 CyberShield AI is typing...
+
+    </div>
+
+    <!-- Suggestions -->
+
+    <div class="suggestions">
+
+        <button onclick="askSuggestion('What is malware?')">
+
+            Malware
+
+        </button>
+
+        <button onclick="askSuggestion('Explain phishing')">
+
+            Phishing
+
+        </button>
+
+        <button onclick="askSuggestion('What is ransomware?')">
+
+            Ransomware
+
+        </button>
+
+        <button onclick="askSuggestion('Explain SQL Injection')">
+
+            SQL Injection
+
+        </button>
+
+    </div>
+
+    <!-- Input -->
+
+    <div class="chat-input">
+
+        <input
+
+            id="message"
+
+            type="text"
+
+            placeholder="Ask CyberShield AI..."
+
+            autocomplete="off"
+
+        >
+
+        <button id="send-btn">
+
+            ➤
+
+        </button>
+
+    </div>
+
+</div>
+
+<!-- Load JS -->
+
+<script src="{{ url_for('static', filename='js/chatbot.js') }}"></script>

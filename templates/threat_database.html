@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="container-fluid py-4">
+
+    <h2 class="text-white fw-bold mb-4">
+        🛡 Threat Database
+    </h2>
+
+    <div class="card shadow-lg border-0 bg-dark p-4">
+
+        <div class="row mb-4">
+
+            <div class="col-md-4">
+
+                <input
+                    type="text"
+                    id="searchInput"
+                    class="form-control search-box"
+                    placeholder="🔍 Search Threat...">
+
+            </div>
+
+        </div>
+
+        <div class="table-responsive">
+
+            <table class="table table-dark table-hover align-middle text-center">
+
+                <thead>
+
+                <tr>
+
+                    <th>Threat</th>
+                    <th>Severity</th>
+                    <th>Description</th>
+
+                </tr>
+
+                </thead>
+
+                <tbody id="threatTable">
+
+                {% for threat in threats %}
+
+                <tr>
+
+                    <td>
+                        <strong>{{ threat.name }}</strong>
+                    </td>
+
+                    <td>
+
+                        {% if threat.severity=="Critical" %}
+                            <span class="badge bg-danger">Critical</span>
+
+                        {% elif threat.severity=="High" %}
+                            <span class="badge bg-warning text-dark">High</span>
+
+                        {% else %}
+                            <span class="badge bg-info">Medium</span>
+
+                        {% endif %}
+
+                    </td>
+
+                    <td class="text-start">
+                        {{ threat.description }}
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
+
+<style>
+
+.card{
+
+    background:#16213e!important;
+
+    border-radius:20px;
+
+    box-shadow:0 0 20px rgba(0,212,255,.15);
+
+}
+
+.table{
+
+    border-radius:15px;
+
+    overflow:hidden;
+
+}
+
+thead{
+
+    background:linear-gradient(90deg,#00d4ff,#007bff);
+
+}
+
+thead th{
+
+    color:white;
+
+    font-size:17px;
+
+    border:none;
+
+}
+
+tbody tr{
+
+    transition:.3s;
+
+}
+
+tbody tr:hover{
+
+    background:#1f2f50!important;
+
+    transform:scale(1.01);
+
+}
+
+.search-box{
+
+    background:#0b1628;
+
+    color:white;
+
+    border:1px solid #00d4ff;
+
+    border-radius:10px;
+
+}
+
+.search-box:focus{
+
+    border-color:#00ffff;
+
+    box-shadow:0 0 12px #00d4ff;
+
+    background:#0b1628;
+
+    color:white;
+
+}
+
+.badge{
+
+    font-size:14px;
+
+    padding:8px 15px;
+
+    border-radius:30px;
+
+}
+
+</style>
+
+<script>
+
+const searchInput=document.getElementById("searchInput");
+
+searchInput.addEventListener("keyup",function(){
+
+    let filter=this.value.toLowerCase();
+
+    let rows=document.querySelectorAll("#threatTable tr");
+
+    rows.forEach(row=>{
+
+        row.style.display=row.innerText.toLowerCase().includes(filter)
+        ? ""
+        : "none";
+
+    });
+
+});
+
+</script>
+
+{% endblock %}

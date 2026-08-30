@@ -1,0 +1,60 @@
+.page-title{
+    color:white;
+    margin-bottom:25px;
+    font-weight:bold;
+}
+
+.monitor-card{
+    background:#17233b;
+    border-radius:18px;
+    padding:25px;
+    color:white;
+    transition:.3s;
+    box-shadow:0 0 20px rgba(0,255,255,.08);
+}
+
+.monitor-card:hover{
+    transform:translateY(-6px);
+    box-shadow:0 0 25px rgba(0,255,255,.25);
+}
+
+.cpu{
+border-left:5px solid #ff4d4d;
+}
+
+.ram{
+border-left:5px solid #ffaa00;
+}
+
+.scan{
+border-left:5px solid #00ccff;
+}
+
+.threat{
+border-left:5px solid #00ff88;
+}
+
+.progress{
+height:8px;
+margin-top:15px;
+background:#2b3b55;
+}
+
+.table{
+border-radius:15px;
+overflow:hidden;
+}
+
+.table-dark{
+background:#17233b;
+}
+
+.form-control{
+background:#10192d;
+color:white;
+border:none;
+}
+
+.form-control::placeholder{
+color:#888;
+}

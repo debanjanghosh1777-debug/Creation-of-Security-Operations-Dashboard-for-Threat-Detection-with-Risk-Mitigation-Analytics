@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="container mt-4">
+
+    <h2 class="text-white mb-4">
+        📊 Threat Analytics
+    </h2>
+
+    <div class="card bg-dark shadow-lg p-4 text-center">
+
+        <div style="width:420px; height:420px; margin:auto;">
+            <canvas id="myChart"></canvas>
+        </div>
+
+    </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+
+const ctx = document.getElementById("myChart");
+
+new Chart(ctx, {
+
+    type: "doughnut",
+
+    data: {
+
+        labels: [
+            "Malware",
+            "Phishing",
+            "Trojan",
+            "Worm",
+            "Spyware"
+        ],
+
+        datasets: [{
+
+            data: [35,20,18,12,15],
+
+            backgroundColor: [
+                "#ff4d4d",
+                "#ffb84d",
+                "#66b3ff",
+                "#5cd65c",
+                "#b366ff"
+            ],
+
+            borderColor: "#1e1e1e",
+            borderWidth: 2
+
+        }]
+
+    },
+
+    options: {
+
+        responsive: true,
+        maintainAspectRatio: false,
+
+        cutout: "55%",
+
+        plugins: {
+
+            legend: {
+
+                position: "right",
+
+                labels: {
+                    color: "white",
+                    font: {
+                        size: 14
+                    }
+                }
+
+            },
+
+            title: {
+
+                display: true,
+
+                text: "Threat Distribution",
+
+                color: "white",
+
+                font: {
+                    size: 22
+                }
+
+            }
+
+        }
+
+    }
+
+});
+
+</script>
+
+{% endblock %}
